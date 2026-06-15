@@ -1,0 +1,135 @@
+name: RAML CI + Exchange Publish
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+      - release/current
+      - release/next
+  push:
+    branches:
+      - main
+      - master
+      - release/current
+      - release/next
+  workflow_dispatch:
+    inputs:
+      publish_exchange:
+        description: "Publicar no Exchange?"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      asset_version:
+        description: "Versão do asset no Exchange. Ex: 1.0.0. Se vazio, usa 1.0.<run_number>."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  APP_NAME: mule-tlf-com-test
+  API_MAIN_FILE: api.raml
+  API_VERSION: v1
+  EXCHANGE_ASSET_ID: mule-tlf-com-test
+  EXCHANGE_ASSET_NAME: Mule TLF COM Test
+  EXCHANGE_ASSET_DESCRIPTION: API RAML de laboratório para Release Flow Guardian.
+  EXCHANGE_ZIP: dist/mule-tlf-com-test-exchange.zip
+  EXCHANGE_ASSET_VERSION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.asset_version != '' && github.event.inputs.asset_version || format('1.0.{0}', github.run_number) }}
+
+jobs:
+  validate:
+    name: Validate RAML and Release Manifest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate release manifest
+        run: npm run validate:release
+
+      - name: Validate RAML contract
+        run: npm run validate:raml
+
+      - name: Build Exchange package
+        run: npm run package:exchange
+
+      - name: Publish validation summary
+        if: always()
+        run: |
+          echo "## Release Flow Guardian" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/release-flow-guardian-report.md ]; then
+            cat dist/release-flow-guardian-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Relatório não gerado." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload validation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mule-tlf-com-test-validation-artifacts
+          path: |
+            dist/*.zip
+            dist/*.md
+
+  publish-exchange:
+    name: Publish RAML to Anypoint Exchange
+    runs-on: ubuntu-latest
+    needs: validate
+    if: >-
+      ${{
+        (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_exchange == 'true')
+      }}
+
+    env:
+      ANYPOINT_CLIENT_ID: ${{ secrets.ANYPOINT_CONNECTED_APP_CLIENT_ID }}
+      ANYPOINT_CLIENT_SECRET: ${{ secrets.ANYPOINT_CONNECTED_APP_CLIENT_SECRET }}
+      ANYPOINT_ORG: ${{ secrets.ANYPOINT_ORG }}
+      ANYPOINT_ENV: ${{ secrets.ANYPOINT_ENV }}
+      ANYPOINT_HOST: ${{ secrets.ANYPOINT_HOST }}
+      EXCHANGE_GROUP_ID: ${{ secrets.EXCHANGE_GROUP_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Anypoint CLI v4
+        run: |
+          npm install -g anypoint-cli-v4
+          anypoint-cli-v4 --version
+
+      - name: Validate RAML and manifest before publish
+        run: npm run validate
+
+      - name: Build Exchange package
+        run: npm run package:exchange
+
+      - name: Publish to Exchange
+        run: npm run publish:exchange

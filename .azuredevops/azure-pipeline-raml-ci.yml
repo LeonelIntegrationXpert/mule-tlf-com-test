@@ -1,0 +1,84 @@
+# ============================================================================================
+# 🧪 mule-tlf-com-test | RAML CI | Release Flow Guardian
+# ============================================================================================
+# Responsabilidade:
+#   - Validar release-manifest.yml
+#   - Validar contrato RAML
+#   - Gerar pacote ZIP para publicação no Exchange
+#   - Publicar artifact de evidência
+# ============================================================================================
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+      - release/current
+      - release/next
+      - feature/*
+      - hotfix/*
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+      - release/current
+      - release/next
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  APP_NAME: mule-tlf-com-test
+  API_MAIN_FILE: api.raml
+  API_VERSION: v1
+  EXCHANGE_ASSET_ID: mule-tlf-com-test
+  EXCHANGE_ASSET_NAME: Mule TLF COM Test
+  EXCHANGE_ZIP: dist/mule-tlf-com-test-exchange.zip
+
+steps:
+  - checkout: self
+    clean: true
+    fetchDepth: 0
+
+  - task: NodeTool@0
+    displayName: "Setup Node.js 20"
+    inputs:
+      versionSpec: "20.x"
+
+  - task: Bash@3
+    displayName: "Install dependencies"
+    inputs:
+      targetType: inline
+      script: |
+        set -euo pipefail
+        npm install
+
+  - task: Bash@3
+    displayName: "Validate release manifest"
+    inputs:
+      targetType: inline
+      script: |
+        set -euo pipefail
+        npm run validate:release
+
+  - task: Bash@3
+    displayName: "Validate RAML contract"
+    inputs:
+      targetType: inline
+      script: |
+        set -euo pipefail
+        npm run validate:raml
+
+  - task: Bash@3
+    displayName: "Build Exchange package"
+    inputs:
+      targetType: inline
+      script: |
+        set -euo pipefail
+        npm run package:exchange
+
+  - publish: dist
+    artifact: mule-tlf-com-test-validation-artifacts
+    displayName: "Publish validation artifacts"

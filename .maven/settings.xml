@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+  <!-- ============================================================================================
+       CI/CD | CREDENCIAIS VIA VARIÁVEIS DE AMBIENTE
+       ============================================================================================
+       Este arquivo fica versionado para futuras validações Maven/Exchange.
+       Para o pipeline RAML atual, a publicação é feita via Anypoint CLI v4.
+
+       Variáveis esperadas:
+       - ANYPOINT_CONNECTED_APP_CLIENT_ID
+       - ANYPOINT_CONNECTED_APP_CLIENT_SECRET
+       - MULE_NEXUS_USERNAME
+       - MULE_NEXUS_PASSWORD
+
+       Exchange Maven Facade com Connected App:
+       username = ~~~Client~~~
+       password = client_id~?~client_secret
+       ============================================================================================ -->
+
+  <interactiveMode>false</interactiveMode>
+
+  <servers>
+    <server>
+      <id>MuleRepository</id>
+      <username>${env.MULE_NEXUS_USERNAME}</username>
+      <password>${env.MULE_NEXUS_PASSWORD}</password>
+    </server>
+
+    <server>
+      <id>anypoint-exchange-v3</id>
+      <username>~~~Client~~~</username>
+      <password>${env.ANYPOINT_CONNECTED_APP_CLIENT_ID}~?~${env.ANYPOINT_CONNECTED_APP_CLIENT_SECRET}</password>
+    </server>
+
+    <server>
+      <id>anypoint-exchange</id>
+      <username>~~~Client~~~</username>
+      <password>${env.ANYPOINT_CONNECTED_APP_CLIENT_ID}~?~${env.ANYPOINT_CONNECTED_APP_CLIENT_SECRET}</password>
+    </server>
+
+    <server>
+      <id>exchange-server</id>
+      <username>~~~Client~~~</username>
+      <password>${env.ANYPOINT_CONNECTED_APP_CLIENT_ID}~?~${env.ANYPOINT_CONNECTED_APP_CLIENT_SECRET}</password>
+    </server>
+
+    <server>
+      <id>Exchange2</id>
+      <username>~~~Client~~~</username>
+      <password>${env.ANYPOINT_CONNECTED_APP_CLIENT_ID}~?~${env.ANYPOINT_CONNECTED_APP_CLIENT_SECRET}</password>
+    </server>
+  </servers>
+
+  <pluginGroups>
+    <pluginGroup>org.mule.tools</pluginGroup>
+    <pluginGroup>org.mule.tools.maven</pluginGroup>
+  </pluginGroups>
+
+  <profiles>
+    <profile>
+      <id>mulesoft-all</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+
+      <repositories>
+        <repository>
+          <id>anypoint-exchange-v3</id>
+          <name>Anypoint Exchange v3</name>
+          <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+          <layout>default</layout>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+
+        <repository>
+          <id>MuleRepository</id>
+          <name>MuleSoft Enterprise Repository</name>
+          <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
+          <layout>default</layout>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+
+        <repository>
+          <id>mulesoft-releases</id>
+          <name>MuleSoft Releases Repository</name>
+          <url>https://repository.mulesoft.org/releases/</url>
+          <layout>default</layout>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+
+        <repository>
+          <id>central</id>
+          <name>Maven Central</name>
+          <url>https://repo1.maven.org/maven2/</url>
+          <layout>default</layout>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+      </repositories>
+
+      <pluginRepositories>
+        <pluginRepository>
+          <id>anypoint-exchange-v3</id>
+          <name>Anypoint Exchange v3 Plugins</name>
+          <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+          <layout>default</layout>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </pluginRepository>
+
+        <pluginRepository>
+          <id>mulesoft-releases</id>
+          <name>MuleSoft Releases Repository</name>
+          <url>https://repository.mulesoft.org/releases/</url>
+          <layout>default</layout>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+
+        <pluginRepository>
+          <id>central-plugins</id>
+          <name>Maven Central Plugins</name>
+          <url>https://repo1.maven.org/maven2/</url>
+          <layout>default</layout>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+
+  <activeProfiles>
+    <activeProfile>mulesoft-all</activeProfile>
+  </activeProfiles>
+</settings>

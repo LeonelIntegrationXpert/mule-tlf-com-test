@@ -1,0 +1,16 @@
+{
+  "assetId": "mule-tlf-com-test",
+  "assetName": "Mule TLF COM Test",
+  "apiVersion": "v1",
+  "mainFile": "api.raml",
+  "type": "rest-api",
+  "status": "published",
+  "keywords": [
+    "mulesoft",
+    "raml",
+    "release-flow-guardian",
+    "api-led",
+    "design-center"
+  ],
+  "description": "API RAML de laboratório para validar branch strategy, CI/CD, Release Flow Guardian e publicação no Anypoint Exchange."
+}

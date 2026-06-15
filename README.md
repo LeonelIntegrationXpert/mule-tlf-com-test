@@ -49,3 +49,55 @@ Este projeto permite testar:
 3. Selecionar este pacote.
 4. Abrir `api.raml` como arquivo principal.
 5. Criar branches de teste conforme `docs/branch-strategy.md`.
+
+---
+
+## CI/CD pronto no pacote
+
+Este pacote já vem preparado para GitHub Actions e Azure DevOps.
+
+### GitHub Actions
+
+Workflow:
+
+```text
+.github/workflows/raml-ci-exchange.yml
+```
+
+Comportamento:
+
+```text
+Pull Request -> valida RAML + release manifest + gera artifact
+Push main/master -> valida RAML + gera pacote + publica no Exchange
+Manual dispatch -> permite publicar no Exchange com versão informada
+```
+
+### Azure DevOps
+
+Pipelines:
+
+```text
+.azuredevops/azure-pipeline-raml-ci.yml
+.azuredevops/azure-pipeline-exchange-publish.yml
+```
+
+### Comandos locais
+
+```bash
+npm install
+npm run validate
+npm run package:exchange
+```
+
+Para publicar localmente, exporte as variáveis necessárias e rode:
+
+```bash
+npm run publish:exchange
+```
+
+Veja também:
+
+```text
+docs/pipeline-secrets.md
+docs/git-flow-ci-cd.md
+```

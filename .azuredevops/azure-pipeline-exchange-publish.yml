@@ -1,0 +1,156 @@
+# ============================================================================================
+# 🚀 mule-tlf-com-test | Exchange Publish | Release Flow Guardian
+# ============================================================================================
+# Responsabilidade:
+#   - Validar manifest/contrato
+#   - Gerar pacote ZIP do RAML
+#   - Publicar no Anypoint Exchange usando Connected App
+#
+# Variáveis secretas esperadas na pipeline ou variable group:
+#   ANYPOINT_CONNECTED_APP_CLIENT_ID
+#   ANYPOINT_CONNECTED_APP_CLIENT_SECRET
+#   ANYPOINT_ORG
+#   ANYPOINT_ENV
+#   ANYPOINT_HOST
+#   EXCHANGE_GROUP_ID
+# ============================================================================================
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+
+pr: none
+
+parameters:
+  - name: publishExchange
+    displayName: Publicar no Exchange?
+    type: boolean
+    default: false
+
+  - name: assetVersion
+    displayName: Versão do asset no Exchange (opcional; vazio usa 1.0.$(Build.BuildId))
+    type: string
+    default: ""
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  APP_NAME: mule-tlf-com-test
+  API_MAIN_FILE: api.raml
+  API_VERSION: v1
+  EXCHANGE_ASSET_ID: mule-tlf-com-test
+  EXCHANGE_ASSET_NAME: Mule TLF COM Test
+  EXCHANGE_ASSET_DESCRIPTION: API RAML de laboratório para Release Flow Guardian.
+  EXCHANGE_ZIP: dist/mule-tlf-com-test-exchange.zip
+  EXCHANGE_ASSET_VERSION: 1.0.$(Build.BuildId)
+
+stages:
+  - stage: validate
+    displayName: "Validate RAML and Manifest"
+    jobs:
+      - job: validate
+        displayName: "Validate contract"
+        steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 0
+
+          - task: NodeTool@0
+            displayName: "Setup Node.js 20"
+            inputs:
+              versionSpec: "20.x"
+
+          - task: Bash@3
+            displayName: "Install dependencies"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm install
+
+          - task: Bash@3
+            displayName: "Validate manifest and RAML"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm run validate
+
+          - task: Bash@3
+            displayName: "Build Exchange package"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm run package:exchange
+
+          - publish: dist
+            artifact: mule-tlf-com-test-validation-artifacts
+            displayName: "Publish validation artifacts"
+
+  - stage: publish_exchange
+    displayName: "Publish to Anypoint Exchange"
+    dependsOn: validate
+    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', 'true'))
+    jobs:
+      - job: publish_exchange
+        displayName: "Publish RAML asset"
+        steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 0
+
+          - task: NodeTool@0
+            displayName: "Setup Node.js 20"
+            inputs:
+              versionSpec: "20.x"
+
+          - task: Bash@3
+            displayName: "Install dependencies and Anypoint CLI"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm install
+                npm install -g anypoint-cli-v4
+                anypoint-cli-v4 --version
+
+          - task: Bash@3
+            displayName: "Validate before publish"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm run validate
+
+          - task: Bash@3
+            displayName: "Build Exchange package"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm run package:exchange
+
+          - task: Bash@3
+            displayName: "Publish to Exchange"
+            env:
+              ANYPOINT_CLIENT_ID: $(ANYPOINT_CONNECTED_APP_CLIENT_ID)
+              ANYPOINT_CLIENT_SECRET: $(ANYPOINT_CONNECTED_APP_CLIENT_SECRET)
+              ANYPOINT_ORG: $(ANYPOINT_ORG)
+              ANYPOINT_ENV: $(ANYPOINT_ENV)
+              ANYPOINT_HOST: $(ANYPOINT_HOST)
+              EXCHANGE_GROUP_ID: $(EXCHANGE_GROUP_ID)
+              EXCHANGE_ASSET_VERSION: $(EXCHANGE_ASSET_VERSION)
+              MANUAL_EXCHANGE_ASSET_VERSION: ${{ parameters.assetVersion }}
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                if [ -n "${MANUAL_EXCHANGE_ASSET_VERSION:-}" ]; then
+                  export EXCHANGE_ASSET_VERSION="$MANUAL_EXCHANGE_ASSET_VERSION"
+                fi
+                echo "Exchange Asset Version: $EXCHANGE_ASSET_VERSION"
+                npm run publish:exchange
