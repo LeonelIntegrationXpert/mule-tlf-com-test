@@ -1,5 +1,20 @@
 let state = { config: null, breaking: null, current: null, baseline: null, diff: null, selectedRemoval: null, filter: 'all' };
 
+const FILE_MODE = window.location.protocol === 'file:';
+const API_ROOT = FILE_MODE ? 'http://127.0.0.1:3030' : '';
+
+function showFileModeNotice() {
+  if (!FILE_MODE) return;
+  const box = document.createElement('div');
+  box.className = 'file-mode-warning';
+  box.innerHTML = `
+    <strong>Console aberto via arquivo local.</strong>
+    <span>Para funcionar 100%, rode <code>npm run config:ui</code> na raiz do projeto e acesse <a href="http://127.0.0.1:3030">http://127.0.0.1:3030</a>.</span>
+    <span>Mesmo assim, vou tentar usar a API local em <code>http://127.0.0.1:3030</code>.</span>
+  `;
+  document.body.prepend(box);
+}
+
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? '').replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -12,8 +27,22 @@ function msg(text, error = false) {
 }
 
 async function api(path, options = {}) {
-  const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
-  const data = await res.json();
+  const url = `${API_ROOT}${path}`;
+  let res;
+  try {
+    res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      mode: 'cors',
+      ...options
+    });
+  } catch (error) {
+    if (FILE_MODE) {
+      throw new Error('Console aberto pelo index.html direto. Rode npm run config:ui na raiz do projeto e abra http://127.0.0.1:3030. Detalhe: ' + error.message);
+    }
+    throw error;
+  }
+
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || (data.errors || []).join(', ') || `HTTP ${res.status}`);
   return data;
 }
@@ -228,4 +257,5 @@ $('saveBreaking').onclick = saveBreaking;
 $('confirmApproval').onclick = confirmApproval;
 $('closeModal').onclick = () => $('approvalModal').classList.add('hidden');
 
+showFileModeNotice();
 loadAll().catch(e => msg(e.message, true));

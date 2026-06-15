@@ -21,14 +21,24 @@ const BASELINE_FILE = 'release/api-contract-baseline.json';
 const CURRENT_CONTRACT_FILE = 'dist/api-contract-current.json';
 const DIFF_FILE = 'dist/api-contract-diff.json';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
+
+function withCors(headers = {}) {
+  return { ...CORS_HEADERS, ...headers };
+}
+
 function json(res, status, payload) {
   const body = JSON.stringify(payload, null, 2);
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.writeHead(status, withCors({ 'Content-Type': 'application/json; charset=utf-8' }));
   res.end(body);
 }
 
 function text(res, status, body, type = 'text/plain') {
-  res.writeHead(status, { 'Content-Type': `${type}; charset=utf-8` });
+  res.writeHead(status, withCors({ 'Content-Type': `${type}; charset=utf-8` }));
   res.end(body);
 }
 
@@ -207,11 +217,16 @@ function serveStatic(req, res, url) {
   if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file)) return text(res, 404, 'Not found');
   const ext = path.extname(file).toLowerCase();
   const type = ext === '.html' ? 'text/html' : ext === '.js' ? 'application/javascript' : ext === '.css' ? 'text/css' : 'text/plain';
-  res.writeHead(200, { 'Content-Type': `${type}; charset=utf-8` });
+  res.writeHead(200, withCors({ 'Content-Type': `${type}; charset=utf-8` }));
   fs.createReadStream(file).pipe(res);
 }
 
 const server = http.createServer((req, res) => {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, withCors());
+    return res.end();
+  }
+
   const url = new URL(req.url, `http://${HOST}:${PORT}`);
   if (url.pathname.startsWith('/api/')) return handleApi(req, res, url);
   return serveStatic(req, res, url);
