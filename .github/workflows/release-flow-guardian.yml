@@ -24,16 +24,8 @@ on:
           - "false"
           - "true"
 
-permissions:
-  contents: read
-
-defaults:
-  run:
-    shell: bash
-
 jobs:
   guardian:
-    name: Release Flow Guardian Core
     uses: LeonelIntegrationXpert/release-flow-guardian-core/.github/workflows/raml-ci-exchange.yml@main
     with:
       config-path: release/guardian.config.yml

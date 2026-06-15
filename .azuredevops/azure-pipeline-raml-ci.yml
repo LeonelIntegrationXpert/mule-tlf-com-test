@@ -6,34 +6,19 @@ trigger:
       - release/current
       - release/next
 
-pr:
-  branches:
-    include:
-      - main
-      - master
-      - release/current
-      - release/next
-
 pool:
   vmImage: ubuntu-latest
 
-variables:
-  GUARDIAN_CONFIG: release/guardian.config.yml
+resources:
+  repositories:
+    - repository: guardian
+      type: github
+      name: LeonelIntegrationXpert/release-flow-guardian-core
+      endpoint: github-service-connection
+      ref: refs/heads/main
 
-steps:
-  - checkout: self
-    fetchDepth: 0
-
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '20.x'
-    displayName: Setup Node.js
-
-  - script: |
-      npm install --no-save --package-lock=false --no-audit --no-fund github:LeonelIntegrationXpert/release-flow-guardian-core#main
-      npx release-flow-guardian preflight
-    displayName: Run Release Flow Guardian preflight
-
-  - publish: dist
-    artifact: release-flow-guardian
-    condition: always()
+extends:
+  template: azure/templates/raml-ci.yml@guardian
+  parameters:
+    configPath: release/guardian.config.yml
+    guardianRef: main

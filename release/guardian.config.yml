@@ -24,6 +24,7 @@ exchange:
   clientIdEnv: ANYPOINT_CONNECTED_APP_CLIENT_ID
   clientSecretEnv: ANYPOINT_CONNECTED_APP_CLIENT_SECRET
   classifier: raml
+  apiVersion: v1
   mainFile: api.raml
   autoBump:
     enabled: true

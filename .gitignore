@@ -1,26 +1,6 @@
-# Node / dependencies
 node_modules/
-npm-debug.log*
-yarn-error.log*
-
-# Build / generated
 dist/
-reports/
-coverage/
+release/backups/
+.env
 *.log
-
-# IDE / OS
-.vscode/
-.idea/
 .DS_Store
-Thumbs.db
-
-# Maven local / secrets
-.m2/
-.maven/settings-local.xml
-settings-local.xml
-
-# Mule / Anypoint generated
-.anypoint/
-.mule/
-target/

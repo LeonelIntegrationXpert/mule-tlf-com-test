@@ -1,10 +1,11 @@
 {
-  "name": "mule-tlf-com-test-design-center",
+  "name": "mule-tlf-com-test",
   "version": "1.0.0",
   "private": true,
-  "description": "RAML Design Center lab project consuming release-flow-guardian-core.",
+  "description": "RAML Design Center lab project using global Release Flow Guardian Core.",
   "scripts": {
-    "guardian": "release-flow-guardian",
+    "guardian:install:local": "npm install --save-dev ../release-flow-guardian-core",
+    "guardian:install:git": "npm install --save-dev github:LeonelIntegrationXpert/release-flow-guardian-core#main",
     "deps:check": "release-flow-guardian deps:check",
     "validate": "release-flow-guardian validate",
     "validate:config": "release-flow-guardian validate:config",
@@ -12,26 +13,15 @@
     "validate:raml": "release-flow-guardian validate:raml",
     "stability:resolve": "release-flow-guardian stability:resolve",
     "contract:extract": "release-flow-guardian contract:extract",
-    "contract:extract:git-base": "release-flow-guardian contract:extract:git-base",
     "contract:guard": "release-flow-guardian contract:guard",
     "package:exchange": "release-flow-guardian package:exchange",
     "publish:exchange": "release-flow-guardian publish:exchange",
     "report:html": "release-flow-guardian report:html",
-    "config:ui": "release-flow-guardian config:ui",
+    "config:ui": "release-flow-guardian console",
     "guardian:preflight": "release-flow-guardian preflight",
-    "ci:publish": "release-flow-guardian ci:publish",
-    "guardian:install:local": "npm install --no-save --package-lock=false ../release-flow-guardian-core || npm install --no-save --package-lock=false ../../global/release-flow-guardian-core",
-    "guardian:install:github": "npm install --package-lock=false --no-audit --no-fund"
+    "ci:publish": "release-flow-guardian ci:publish"
   },
-  "devDependencies": {
-    "release-flow-guardian-core": "github:LeonelIntegrationXpert/release-flow-guardian-core#main",
-    "raml-1-parser": "1.1.67",
-    "yaml": "2.4.5",
-    "express": "4.18.3",
-    "diff": "5.2.0",
-    "minimatch": "9.0.5",
-    "archiver": "6.0.2"
-  },
+  "devDependencies": {},
   "engines": {
     "node": ">=20"
   }

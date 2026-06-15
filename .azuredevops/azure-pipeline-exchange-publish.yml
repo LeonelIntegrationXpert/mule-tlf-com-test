@@ -1,44 +1,25 @@
+trigger: none
+
 parameters:
   - name: publishExchange
+    displayName: Publicar no Exchange?
     type: boolean
     default: false
-
-trigger: none
 
 pool:
   vmImage: ubuntu-latest
 
-variables:
-  GUARDIAN_CONFIG: release/guardian.config.yml
+resources:
+  repositories:
+    - repository: guardian
+      type: github
+      name: LeonelIntegrationXpert/release-flow-guardian-core
+      endpoint: github-service-connection
+      ref: refs/heads/main
 
-steps:
-  - checkout: self
-    fetchDepth: 0
-
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '20.x'
-    displayName: Setup Node.js
-
-  - script: |
-      npm install --no-save --package-lock=false --no-audit --no-fund github:LeonelIntegrationXpert/release-flow-guardian-core#main
-      npx release-flow-guardian preflight
-    displayName: Validate and generate evidence
-
-  - script: |
-      npm install -g anypoint-cli-v4
-      anypoint-cli-v4 --version
-      npx release-flow-guardian publish:exchange
-      npx release-flow-guardian report:html
-    displayName: Publish to Exchange with auto bump
-    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', 'true'))
-    env:
-      ANYPOINT_CONNECTED_APP_CLIENT_ID: $(ANYPOINT_CONNECTED_APP_CLIENT_ID)
-      ANYPOINT_CONNECTED_APP_CLIENT_SECRET: $(ANYPOINT_CONNECTED_APP_CLIENT_SECRET)
-      ANYPOINT_ORG: $(ANYPOINT_ORG)
-      ANYPOINT_HOST: $(ANYPOINT_HOST)
-      EXCHANGE_GROUP_ID: $(EXCHANGE_GROUP_ID)
-
-  - publish: dist
-    artifact: release-flow-guardian
-    condition: always()
+extends:
+  template: azure/templates/exchange-publish.yml@guardian
+  parameters:
+    configPath: release/guardian.config.yml
+    guardianRef: main
+    publishExchange: ${{ parameters.publishExchange }}

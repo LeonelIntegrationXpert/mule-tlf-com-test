@@ -1,36 +1,36 @@
 # mule-tlf-com-test
 
-Interface RAML de laboratório consumindo o **release-flow-guardian-core** global.
+Projeto RAML/Design Center usado como laboratório do Release Flow Guardian.
 
-Core global:
+Agora este repositório está no modelo **core consumer**:
 
-```text
-https://github.com/LeonelIntegrationXpert/release-flow-guardian-core
-```
+- Este repo guarda o contrato da API e configurações locais.
+- O motor global fica no repo `release-flow-guardian-core`.
 
-## Estrutura local
-
-Este repositório mantém apenas o que é específico da interface:
+## Arquivos locais importantes
 
 ```text
 api.raml
-examples/
-types/
-traits/
-securitySchemes/
-resourceTypes/
 release/guardian.config.yml
 release/release-manifest.yml
 release/api-contract-baseline.json
 release/breaking-changes.yml
 ```
 
-A inteligência fica no core global.
+## Primeiro uso local
 
-## Teste local
+Extraia este projeto e o `release-flow-guardian-core` lado a lado:
+
+```text
+Release Flow Guardian/
+├─ release-flow-guardian-core/
+└─ mule-tlf-com-test/
+```
+
+Depois rode:
 
 ```bash
-npm install --package-lock=false --no-audit --no-fund
+npm run guardian:install:local
 npm run validate
 npm run guardian:preflight
 npm run config:ui
@@ -42,41 +42,45 @@ Abra:
 http://127.0.0.1:3030
 ```
 
-## Teste com core local lado a lado
-
-Se você tiver a pasta `global/release-flow-guardian-core` ao lado da pasta `Interfaces/mule-tlf-com-test`:
+## Depois que o core estiver no GitHub
 
 ```bash
-npm run guardian:install:local
+npm run guardian:install:git
 npm run validate
-npm run guardian:preflight
 ```
 
 ## GitHub Actions
 
-O workflow deste repositório chama o workflow reutilizável do core:
+O workflow local chama o reusable workflow global:
 
-```yaml
-uses: LeonelIntegrationXpert/release-flow-guardian-core/.github/workflows/raml-ci-exchange.yml@main
+```text
+.github/workflows/release-flow-guardian.yml
 ```
 
-## Secrets necessários para publicar no Exchange
+Secrets necessários:
 
-- `ANYPOINT_CONNECTED_APP_CLIENT_ID`
-- `ANYPOINT_CONNECTED_APP_CLIENT_SECRET`
-- `ANYPOINT_ORG`
-- `ANYPOINT_HOST`
-- `EXCHANGE_GROUP_ID`
+```text
+ANYPOINT_CONNECTED_APP_CLIENT_ID
+ANYPOINT_CONNECTED_APP_CLIENT_SECRET
+ANYPOINT_ORG
+ANYPOINT_HOST
+EXCHANGE_GROUP_ID
+```
 
 ## Regra de contrato
 
-- Endpoint novo: OK.
-- Endpoint mantido: OK.
-- Endpoint removido sem aprovação: BLOCK.
-- Endpoint removido aprovado em `release/breaking-changes.yml`: WARN.
+Endpoint removido sem aprovação em `release/breaking-changes.yml` bloqueia a pipeline.
+Endpoint removido com aprovação passa como WARN.
 
-O baseline oficial fica em:
+
+## Observação importante sobre Exchange
+
+Este projeto consome o `release-flow-guardian-core` global. O pacote `raml.zip` gerado para o Exchange não deve incluir `exchange.json` raiz com placeholders.
+
+A configuração de publicação fica em:
 
 ```text
-release/api-contract-baseline.json
+release/guardian.config.yml
 ```
+
+A versão é resolvida automaticamente no publish pelo Guardian Core.
