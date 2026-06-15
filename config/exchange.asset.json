@@ -12,5 +12,11 @@
     "api-led",
     "design-center"
   ],
-  "description": "API RAML de laboratório para validar branch strategy, CI/CD, Release Flow Guardian e publicação no Anypoint Exchange."
+  "description": "API RAML de laboratório para validar branch strategy, CI/CD, Release Flow Guardian e publicação no Anypoint Exchange.",
+  "versionStrategy": {
+    "minorLine": "1.0",
+    "initialVersion": "1.0.0",
+    "autoBumpOnConflict": true,
+    "maxConflictBumps": 3
+  }
 }

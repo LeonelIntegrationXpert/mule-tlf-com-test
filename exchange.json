@@ -1,10 +1,15 @@
 {
   "main": "api.raml",
-  "name": "mule-tlf-com-test-design-center",
-  "groupId": "3078b181-938c-405e-a2eb-d4ccf55d05af",
-  "assetId": "mule-tlf-com-test-design-center",
-  "version": "1.0.0",
+  "name": "Mule TLF COM Test",
+  "groupId": "${EXCHANGE_GROUP_ID}",
+  "assetId": "mule-tlf-com-test",
+  "version": "${EXCHANGE_ASSET_VERSION_AUTO_RESOLVED}",
   "classifier": "raml",
-  "tags": [],
-  "descriptorVersion": "1.0.0"
+  "tags": [
+    "release-flow-guardian",
+    "raml",
+    "mulesoft"
+  ],
+  "descriptorVersion": "1.0.0",
+  "note": "Arquivo informativo. A publicação real é controlada por scripts/exchange-publish-guardian.js."
 }

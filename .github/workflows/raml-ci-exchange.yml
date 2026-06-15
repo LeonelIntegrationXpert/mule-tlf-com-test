@@ -7,12 +7,14 @@ on:
       - master
       - release/current
       - release/next
+
   push:
     branches:
       - main
       - master
       - release/current
       - release/next
+
   workflow_dispatch:
     inputs:
       publish_exchange:
@@ -23,13 +25,14 @@ on:
         options:
           - "false"
           - "true"
-      asset_version:
-        description: "Versão do asset no Exchange. Ex: 1.0.0. Se vazio, usa 1.0.<run_number>."
-        required: false
-        default: ""
 
 permissions:
   contents: read
+
+# Evita corrida de duas publicações tentando gerar/publicar a mesma próxima versão.
+concurrency:
+  group: exchange-publish-${{ github.repository }}-mule-tlf-com-test-1-0
+  cancel-in-progress: false
 
 env:
   APP_NAME: mule-tlf-com-test
@@ -39,7 +42,10 @@ env:
   EXCHANGE_ASSET_NAME: Mule TLF COM Test
   EXCHANGE_ASSET_DESCRIPTION: API RAML de laboratório para Release Flow Guardian.
   EXCHANGE_ZIP: dist/mule-tlf-com-test-exchange.zip
-  EXCHANGE_ASSET_VERSION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.asset_version != '' && github.event.inputs.asset_version || format('1.0.{0}', github.run_number) }}
+  EXCHANGE_MINOR_VERSION: "1.0"
+  EXCHANGE_INITIAL_VERSION: "1.0.0"
+  EXCHANGE_MAX_CONFLICT_BUMPS: "3"
+  EXCHANGE_MAX_TRANSIENT_RETRIES: "3"
 
 jobs:
   validate:
@@ -77,7 +83,7 @@ jobs:
           if [ -f dist/release-flow-guardian-report.md ]; then
             cat dist/release-flow-guardian-report.md >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Relatório não gerado." >> "$GITHUB_STEP_SUMMARY"
+            echo "Relatório de validação não gerado." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload validation artifacts
@@ -87,6 +93,7 @@ jobs:
           path: |
             dist/*.zip
             dist/*.md
+            dist/*.json
 
   publish-exchange:
     name: Publish RAML to Anypoint Exchange
@@ -130,5 +137,25 @@ jobs:
       - name: Build Exchange package
         run: npm run package:exchange
 
-      - name: Publish to Exchange
+      - name: Publish to Exchange with auto bump
         run: npm run publish:exchange
+
+      - name: Publish Exchange summary
+        if: always()
+        run: |
+          echo "## Exchange Publish" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/exchange-publish-report.md ]; then
+            cat dist/exchange-publish-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Relatório de publicação não gerado." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload publish artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mule-tlf-com-test-exchange-publish-report
+          path: |
+            dist/exchange-publish-report.md
+            dist/exchange-publish-report.json

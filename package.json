@@ -8,7 +8,8 @@
     "validate:raml": "node scripts/validate-raml.js api.raml",
     "validate:release": "node scripts/check-release-manifest.js",
     "package:exchange": "bash scripts/build-exchange-package.sh",
-    "publish:exchange": "bash scripts/publish-exchange.sh"
+    "publish:exchange": "node scripts/exchange-publish-guardian.js",
+    "publish:exchange:legacy-wrapper": "bash scripts/publish-exchange.sh"
   },
   "dependencies": {
     "raml-1-parser": "1.1.67",

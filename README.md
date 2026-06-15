@@ -101,3 +101,49 @@ Veja também:
 docs/pipeline-secrets.md
 docs/git-flow-ci-cd.md
 ```
+
+
+## Exchange Publish com Auto Bump
+
+Este projeto está preparado para publicar no Anypoint Exchange com versão automática na linha `1.0.x`.
+
+Regra:
+
+```text
+Se o asset não existir:
+  publica 1.0.0
+
+Se o asset existir:
+  busca a última versão 1.0.x
+  publica 1.0.(último patch + 1)
+```
+
+Proteções:
+
+```text
+409 Conflict:
+  auto bump até 3 vezes
+
+400 Bad Request:
+  falha com diagnóstico claro
+  não faz bump automático no escuro
+
+401/403:
+  falha por credencial/permissão
+
+429/5xx:
+  retry com backoff
+```
+
+Relatórios gerados:
+
+```text
+dist/exchange-publish-report.md
+dist/exchange-publish-report.json
+```
+
+Documentação completa:
+
+```text
+docs/exchange-autobump-strategy.md
+```
