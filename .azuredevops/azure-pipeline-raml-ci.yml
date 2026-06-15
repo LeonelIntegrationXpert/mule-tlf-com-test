@@ -18,51 +18,22 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  APP_NAME: mule-tlf-com-test
-  API_MAIN_FILE: api.raml
-  EXCHANGE_ASSET_ID: mule-tlf-com-test
-  EXCHANGE_MINOR_VERSION: '1.0'
+  GUARDIAN_CONFIG: release/guardian.config.yml
 
 steps:
   - checkout: self
     fetchDepth: 0
 
-  - task: UseNode@1
+  - task: NodeTool@0
     inputs:
-      version: '20.x'
+      versionSpec: '20.x'
     displayName: Setup Node.js
 
   - script: |
-      npm install --package-lock=false --no-audit --no-fund
-      npm run deps:check
-    displayName: Install dependencies
-
-  - script: npm run validate:config
-    displayName: Validate Guardian config
-
-  - script: npm run validate:release
-    displayName: Validate release manifest
-
-  - script: npm run validate:raml
-    displayName: Validate RAML
-
-  - script: npm run stability:resolve
-    displayName: Resolve stability
-
-  - script: npm run contract:extract
-    displayName: Extract API contract
-
-  - script: npm run contract:guard
-    displayName: API Contract Guard
-
-  - script: npm run package:exchange
-    displayName: Build Exchange package
-
-  - script: npm run report:html
-    condition: always()
-    displayName: Generate HTML report
+      npm install --no-save --package-lock=false --no-audit --no-fund github:LeonelIntegrationXpert/release-flow-guardian-core#main
+      npx release-flow-guardian preflight
+    displayName: Run Release Flow Guardian preflight
 
   - publish: dist
-    artifact: release-flow-guardian-report
+    artifact: release-flow-guardian
     condition: always()
-    displayName: Publish artifacts

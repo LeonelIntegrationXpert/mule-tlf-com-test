@@ -1,6 +1,5 @@
 parameters:
   - name: publishExchange
-    displayName: Publicar no Exchange?
     type: boolean
     default: false
 
@@ -10,66 +9,36 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  APP_NAME: mule-tlf-com-test
-  API_MAIN_FILE: api.raml
-  API_VERSION: v1
-  EXCHANGE_ASSET_ID: mule-tlf-com-test
-  EXCHANGE_ASSET_NAME: Mule TLF COM Test
-  EXCHANGE_ASSET_DESCRIPTION: API RAML de laboratório para Release Flow Guardian.
-  EXCHANGE_ZIP: dist/mule-tlf-com-test-exchange.zip
-  EXCHANGE_MINOR_VERSION: '1.0'
-  EXCHANGE_INITIAL_VERSION: '1.0.0'
-  EXCHANGE_MAX_CONFLICT_BUMPS: '3'
-  EXCHANGE_MAX_TRANSIENT_RETRIES: '3'
+  GUARDIAN_CONFIG: release/guardian.config.yml
 
 steps:
   - checkout: self
     fetchDepth: 0
 
-  - task: UseNode@1
+  - task: NodeTool@0
     inputs:
-      version: '20.x'
+      versionSpec: '20.x'
     displayName: Setup Node.js
 
   - script: |
-      npm install --package-lock=false --no-audit --no-fund
-      npm run deps:check
-    displayName: Install dependencies
-
-  - script: npm run validate
-    displayName: Validate all Guardian gates
-
-  - script: npm run stability:resolve
-    displayName: Resolve stability
-
-  - script: npm run package:exchange
-    displayName: Build Exchange package
-
-  - script: npm run report:html
-    condition: always()
-    displayName: Generate pre-publish report
+      npm install --no-save --package-lock=false --no-audit --no-fund github:LeonelIntegrationXpert/release-flow-guardian-core#main
+      npx release-flow-guardian preflight
+    displayName: Validate and generate evidence
 
   - script: |
       npm install -g anypoint-cli-v4
       anypoint-cli-v4 --version
-    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', true))
-    displayName: Install Anypoint CLI v4
-
-  - script: npm run publish:exchange
-    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', true))
+      npx release-flow-guardian publish:exchange
+      npx release-flow-guardian report:html
+    displayName: Publish to Exchange with auto bump
+    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', 'true'))
     env:
-      ANYPOINT_CLIENT_ID: $(ANYPOINT_CONNECTED_APP_CLIENT_ID)
-      ANYPOINT_CLIENT_SECRET: $(ANYPOINT_CONNECTED_APP_CLIENT_SECRET)
+      ANYPOINT_CONNECTED_APP_CLIENT_ID: $(ANYPOINT_CONNECTED_APP_CLIENT_ID)
+      ANYPOINT_CONNECTED_APP_CLIENT_SECRET: $(ANYPOINT_CONNECTED_APP_CLIENT_SECRET)
       ANYPOINT_ORG: $(ANYPOINT_ORG)
       ANYPOINT_HOST: $(ANYPOINT_HOST)
       EXCHANGE_GROUP_ID: $(EXCHANGE_GROUP_ID)
-    displayName: Publish to Exchange with auto bump
-
-  - script: npm run report:html
-    condition: always()
-    displayName: Generate final report
 
   - publish: dist
-    artifact: release-flow-guardian-publish-report
+    artifact: release-flow-guardian
     condition: always()
-    displayName: Publish artifacts
