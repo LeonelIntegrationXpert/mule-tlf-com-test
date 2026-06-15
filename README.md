@@ -147,3 +147,49 @@ Documentação completa:
 ```text
 docs/exchange-autobump-strategy.md
 ```
+
+
+## API Contract Guard + HTML Report
+
+Este projeto agora possui proteção contra perda acidental de contrato antes da publicação no Exchange.
+
+O Contract Guard compara o RAML atual contra uma referência anterior e bloqueia breaking changes não aprovadas, como:
+
+```text
+endpoint removido
+método HTTP removido
+query param obrigatório removido
+response 200/201 removida
+security scheme removido
+trait removida
+type/schema removido
+campo obrigatório removido
+campo com tipo alterado
+```
+
+Também gera um report visual dark/neon em:
+
+```text
+dist/release-flow-guardian-report.html
+dist/release-flow-guardian-report.json
+```
+
+Comandos:
+
+```bash
+npm run contract:guard
+npm run report:html
+npm run ci:validate
+```
+
+Para aprovar uma quebra intencional, use:
+
+```text
+release/breaking-changes.yml
+```
+
+Documentação completa:
+
+```text
+docs/contract-guard-and-html-report.md
+```

@@ -1,0 +1,450 @@
+{
+  "contractVersion": "1.0",
+  "sourceFile": "api.raml",
+  "generatedAt": "2026-06-15T15:15:37.922Z",
+  "title": "mule-tlf-com-test",
+  "version": "v1",
+  "baseUri": "https://api.telefonica.com.br/mule-tlf-com-test/{version}",
+  "protocols": [
+    "HTTPS"
+  ],
+  "securitySchemes": [
+    "clientIdEnforcement"
+  ],
+  "traits": [
+    "clientIdentified",
+    "traceable"
+  ],
+  "endpoints": [
+    {
+      "id": "GET /release/v1/status/{releaseId}",
+      "method": "GET",
+      "path": "/release/v1/status/{releaseId}",
+      "displayName": "Consultar status da release",
+      "description": "Consulta o status consolidado de uma release para apoiar validações do Release Flow Guardian.\n\nEste endpoint foi criado para testes de estrutura de branches no Design Center:\nfeature/* → release/next → release/current → master/main.\n",
+      "queryParameters": {
+        "environment": {
+          "name": "environment",
+          "required": false,
+          "type": [
+            "string"
+          ],
+          "enum": [
+            "DEV",
+            "ESTEIRA1",
+            "ESTEIRA2",
+            "PREPROD",
+            "PRODLIKE",
+            "PRODUCAO"
+          ],
+          "pattern": null,
+          "default": "DEV",
+          "description": "Ambiente usado para simular a etapa da release."
+        },
+        "dryRun": {
+          "name": "dryRun",
+          "required": false,
+          "type": [
+            "boolean"
+          ],
+          "enum": [],
+          "pattern": null,
+          "default": true,
+          "description": "Quando verdadeiro, retorna apenas simulação sem efeito operacional."
+        }
+      },
+      "body": {},
+      "responses": {
+        "200": {
+          "code": "200",
+          "description": "Status da release consultado com sucesso.",
+          "body": {
+            "application/json": {
+              "mediaType": "application/json",
+              "type": [
+                "ReleaseStatusResponse"
+              ],
+              "required": false
+            }
+          }
+        },
+        "400": {
+          "code": "400",
+          "description": "Requisição inválida ou parâmetros fora do padrão esperado.",
+          "body": {
+            "application/json": {
+              "mediaType": "application/json",
+              "type": [
+                "ErrorResponse"
+              ],
+              "required": false
+            }
+          }
+        },
+        "404": {
+          "code": "404",
+          "description": "Release não encontrada.",
+          "body": {
+            "application/json": {
+              "mediaType": "application/json",
+              "type": [
+                "ErrorResponse"
+              ],
+              "required": false
+            }
+          }
+        },
+        "500": {
+          "code": "500",
+          "description": "Erro interno inesperado na simulação do status da release.",
+          "body": {
+            "application/json": {
+              "mediaType": "application/json",
+              "type": [
+                "ErrorResponse"
+              ],
+              "required": false
+            }
+          }
+        }
+      },
+      "securedBy": [
+        "clientIdEnforcement"
+      ],
+      "traits": [
+        "clientIdentified",
+        "traceable"
+      ],
+      "protocols": [
+        "HTTPS"
+      ],
+      "uriParameters": {
+        "releaseId": {
+          "name": "releaseId",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": [],
+          "pattern": "^RLM[0-9]{6}$",
+          "default": null,
+          "description": "Identificador oficial da release no padrão RLMYYYYMM."
+        }
+      }
+    }
+  ],
+  "types": {
+    "ReleaseStatusResponse": {
+      "name": "ReleaseStatusResponse",
+      "type": [
+        "object"
+      ],
+      "properties": {
+        "metadata": {
+          "name": "metadata",
+          "path": "metadata",
+          "required": true,
+          "type": [
+            "object"
+          ],
+          "enum": []
+        },
+        "metadata.correlationId": {
+          "name": "correlationId",
+          "path": "metadata.correlationId",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "metadata.timestamp": {
+          "name": "timestamp",
+          "path": "metadata.timestamp",
+          "required": true,
+          "type": [
+            "datetime"
+          ],
+          "enum": []
+        },
+        "metadata.apiName": {
+          "name": "apiName",
+          "path": "metadata.apiName",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "metadata.apiVersion": {
+          "name": "apiVersion",
+          "path": "metadata.apiVersion",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data": {
+          "name": "data",
+          "path": "data",
+          "required": true,
+          "type": [
+            "object"
+          ],
+          "enum": []
+        },
+        "data.releaseId": {
+          "name": "releaseId",
+          "path": "data.releaseId",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data.applicationName": {
+          "name": "applicationName",
+          "path": "data.applicationName",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data.targetEnvironment": {
+          "name": "targetEnvironment",
+          "path": "data.targetEnvironment",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": [
+            "DEV",
+            "ESTEIRA1",
+            "ESTEIRA2",
+            "PREPROD",
+            "PRODLIKE",
+            "PRODUCAO"
+          ]
+        },
+        "data.dryRun": {
+          "name": "dryRun",
+          "path": "data.dryRun",
+          "required": true,
+          "type": [
+            "boolean"
+          ],
+          "enum": []
+        },
+        "data.branchStrategy": {
+          "name": "branchStrategy",
+          "path": "data.branchStrategy",
+          "required": true,
+          "type": [
+            "object"
+          ],
+          "enum": []
+        },
+        "data.branchStrategy.featureBranch": {
+          "name": "featureBranch",
+          "path": "data.branchStrategy.featureBranch",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data.branchStrategy.nextReleaseBranch": {
+          "name": "nextReleaseBranch",
+          "path": "data.branchStrategy.nextReleaseBranch",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data.branchStrategy.currentReleaseBranch": {
+          "name": "currentReleaseBranch",
+          "path": "data.branchStrategy.currentReleaseBranch",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data.branchStrategy.productionBranch": {
+          "name": "productionBranch",
+          "path": "data.branchStrategy.productionBranch",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data.validation": {
+          "name": "validation",
+          "path": "data.validation",
+          "required": true,
+          "type": [
+            "object"
+          ],
+          "enum": []
+        },
+        "data.validation.status": {
+          "name": "status",
+          "path": "data.validation.status",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": [
+            "APPROVED",
+            "BLOCKED",
+            "READY_FOR_DEPLOY",
+            "READY_FOR_DEV",
+            "READY_FOR_REVIEW"
+          ]
+        },
+        "data.validation.summary": {
+          "name": "summary",
+          "path": "data.validation.summary",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data.validation.gates": {
+          "name": "gates",
+          "path": "data.validation.gates",
+          "required": true,
+          "type": [
+            "array"
+          ],
+          "enum": []
+        },
+        "data.evidence": {
+          "name": "evidence",
+          "path": "data.evidence",
+          "required": true,
+          "type": [
+            "object"
+          ],
+          "enum": []
+        },
+        "data.evidence.manifestId": {
+          "name": "manifestId",
+          "path": "data.evidence.manifestId",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "data.evidence.shdValidated": {
+          "name": "shdValidated",
+          "path": "data.evidence.shdValidated",
+          "required": true,
+          "type": [
+            "boolean"
+          ],
+          "enum": []
+        },
+        "data.evidence.apiManagerPolicyReview": {
+          "name": "apiManagerPolicyReview",
+          "path": "data.evidence.apiManagerPolicyReview",
+          "required": true,
+          "type": [
+            "boolean"
+          ],
+          "enum": []
+        },
+        "data.evidence.rollbackPlan": {
+          "name": "rollbackPlan",
+          "path": "data.evidence.rollbackPlan",
+          "required": true,
+          "type": [
+            "boolean"
+          ],
+          "enum": []
+        },
+        "data.evidence.evidenceStatus": {
+          "name": "evidenceStatus",
+          "path": "data.evidence.evidenceStatus",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": [
+            "COMPLETE",
+            "INCOMPLETE",
+            "NOT_REQUIRED"
+          ]
+        }
+      }
+    },
+    "ErrorResponse": {
+      "name": "ErrorResponse",
+      "type": [
+        "object"
+      ],
+      "properties": {
+        "correlationId": {
+          "name": "correlationId",
+          "path": "correlationId",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "path": "timestamp",
+          "required": true,
+          "type": [
+            "datetime"
+          ],
+          "enum": []
+        },
+        "error": {
+          "name": "error",
+          "path": "error",
+          "required": true,
+          "type": [
+            "object"
+          ],
+          "enum": []
+        },
+        "error.code": {
+          "name": "code",
+          "path": "error.code",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "error.message": {
+          "name": "message",
+          "path": "error.message",
+          "required": true,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        },
+        "error.details": {
+          "name": "details",
+          "path": "error.details",
+          "required": false,
+          "type": [
+            "string"
+          ],
+          "enum": []
+        }
+      }
+    }
+  }
+}

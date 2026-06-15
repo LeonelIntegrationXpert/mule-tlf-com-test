@@ -4,12 +4,17 @@
   "private": true,
   "description": "RAML Design Center lab project for Release Flow Guardian.",
   "scripts": {
-    "validate": "npm run validate:release && npm run validate:raml",
+    "validate": "npm run validate:release && npm run validate:raml && npm run contract:guard",
     "validate:raml": "node scripts/validate-raml.js api.raml",
     "validate:release": "node scripts/check-release-manifest.js",
     "package:exchange": "bash scripts/build-exchange-package.sh",
     "publish:exchange": "node scripts/exchange-publish-guardian.js",
-    "publish:exchange:legacy-wrapper": "bash scripts/publish-exchange.sh"
+    "publish:exchange:legacy-wrapper": "bash scripts/publish-exchange.sh",
+    "contract:extract": "node scripts/extract-raml-contract.js api.raml dist/api-contract-current.json",
+    "contract:guard": "node scripts/compare-api-contract.js api.raml",
+    "report:html": "node scripts/generate-html-report.js",
+    "ci:validate": "npm run validate && npm run package:exchange && npm run report:html",
+    "ci:publish": "npm run validate && npm run package:exchange && npm run publish:exchange && npm run report:html"
   },
   "dependencies": {
     "raml-1-parser": "1.1.67",

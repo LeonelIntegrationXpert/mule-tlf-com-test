@@ -1,11 +1,12 @@
 # ============================================================================================
-# 🧪 mule-tlf-com-test | RAML CI | Release Flow Guardian
+# ✅ mule-tlf-com-test | RAML CI | Release Flow Guardian
 # ============================================================================================
 # Responsabilidade:
 #   - Validar release-manifest.yml
-#   - Validar contrato RAML
-#   - Gerar pacote ZIP para publicação no Exchange
-#   - Publicar artifact de evidência
+#   - Validar sintaxe RAML
+#   - Executar API Contract Guard
+#   - Gerar pacote ZIP do Exchange
+#   - Gerar report HTML/JSON como artifact
 # ============================================================================================
 
 trigger:
@@ -16,7 +17,6 @@ trigger:
       - release/current
       - release/next
       - feature/*
-      - hotfix/*
 
 pr:
   branches:
@@ -35,7 +35,10 @@ variables:
   API_VERSION: v1
   EXCHANGE_ASSET_ID: mule-tlf-com-test
   EXCHANGE_ASSET_NAME: Mule TLF COM Test
+  EXCHANGE_ASSET_DESCRIPTION: API RAML de laboratório para Release Flow Guardian.
   EXCHANGE_ZIP: dist/mule-tlf-com-test-exchange.zip
+  EXCHANGE_MINOR_VERSION: "1.0"
+  EXCHANGE_INITIAL_VERSION: "1.0.0"
 
 steps:
   - checkout: self
@@ -64,12 +67,20 @@ steps:
         npm run validate:release
 
   - task: Bash@3
-    displayName: "Validate RAML contract"
+    displayName: "Validate RAML syntax"
     inputs:
       targetType: inline
       script: |
         set -euo pipefail
         npm run validate:raml
+
+  - task: Bash@3
+    displayName: "API Contract Guard"
+    inputs:
+      targetType: inline
+      script: |
+        set -euo pipefail
+        npm run contract:guard
 
   - task: Bash@3
     displayName: "Build Exchange package"
@@ -79,6 +90,15 @@ steps:
         set -euo pipefail
         npm run package:exchange
 
+  - task: Bash@3
+    displayName: "Generate HTML report"
+    condition: always()
+    inputs:
+      targetType: inline
+      script: |
+        npm run report:html || true
+
   - publish: dist
     artifact: mule-tlf-com-test-validation-artifacts
+    condition: always()
     displayName: "Publish validation artifacts"

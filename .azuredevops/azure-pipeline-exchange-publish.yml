@@ -3,6 +3,7 @@
 # ============================================================================================
 # Responsabilidade:
 #   - Validar manifest/contrato
+#   - Executar API Contract Guard para evitar perda acidental de endpoints
 #   - Gerar pacote ZIP do RAML
 #   - Publicar no Anypoint Exchange usando Connected App
 #   - Resolver versão automaticamente:
@@ -10,6 +11,7 @@
 #       asset existe     -> latest 1.0.x + 1
 #   - Tratar 409 com auto bump até 3 vezes
 #   - Bloquear 400 com diagnóstico claro
+#   - Gerar report HTML/JSON como evidência
 #
 # Variáveis secretas esperadas na pipeline ou variable group:
 #   ANYPOINT_CONNECTED_APP_CLIENT_ID
@@ -51,7 +53,7 @@ variables:
 
 stages:
   - stage: validate
-    displayName: "Validate RAML and Manifest"
+    displayName: "Validate RAML, Manifest and Contract Guard"
     jobs:
       - job: validate
         displayName: "Validate contract"
@@ -74,12 +76,28 @@ stages:
                 npm install
 
           - task: Bash@3
-            displayName: "Validate manifest and RAML"
+            displayName: "Validate release manifest"
             inputs:
               targetType: inline
               script: |
                 set -euo pipefail
-                npm run validate
+                npm run validate:release
+
+          - task: Bash@3
+            displayName: "Validate RAML syntax"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm run validate:raml
+
+          - task: Bash@3
+            displayName: "API Contract Guard"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm run contract:guard
 
           - task: Bash@3
             displayName: "Build Exchange package"
@@ -89,8 +107,17 @@ stages:
                 set -euo pipefail
                 npm run package:exchange
 
+          - task: Bash@3
+            displayName: "Generate HTML report"
+            condition: always()
+            inputs:
+              targetType: inline
+              script: |
+                npm run report:html || true
+
           - publish: dist
             artifact: mule-tlf-com-test-validation-artifacts
+            condition: always()
             displayName: "Publish validation artifacts"
 
   - stage: publish_exchange
@@ -123,12 +150,28 @@ stages:
                 anypoint-cli-v4 --version
 
           - task: Bash@3
-            displayName: "Validate before publish"
+            displayName: "Validate release manifest"
             inputs:
               targetType: inline
               script: |
                 set -euo pipefail
-                npm run validate
+                npm run validate:release
+
+          - task: Bash@3
+            displayName: "Validate RAML syntax"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm run validate:raml
+
+          - task: Bash@3
+            displayName: "API Contract Guard"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                npm run contract:guard
 
           - task: Bash@3
             displayName: "Build Exchange package"
@@ -152,7 +195,15 @@ stages:
                 set -euo pipefail
                 npm run publish:exchange
 
+          - task: Bash@3
+            displayName: "Generate final HTML report"
+            condition: always()
+            inputs:
+              targetType: inline
+              script: |
+                npm run report:html || true
+
           - publish: dist
             artifact: mule-tlf-com-test-exchange-publish-report
-            displayName: "Publish Exchange report"
             condition: always()
+            displayName: "Publish Exchange report artifacts"

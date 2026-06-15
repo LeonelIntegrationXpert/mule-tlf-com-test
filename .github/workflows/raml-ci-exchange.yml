@@ -29,7 +29,7 @@ on:
 permissions:
   contents: read
 
-# Evita corrida de duas publicações tentando gerar/publicar a mesma próxima versão.
+# Evita duas publicações simultâneas tentando resolver a mesma próxima versão no Exchange.
 concurrency:
   group: exchange-publish-${{ github.repository }}-mule-tlf-com-test-1-0
   cancel-in-progress: false
@@ -49,7 +49,7 @@ env:
 
 jobs:
   validate:
-    name: Validate RAML and Release Manifest
+    name: Validate RAML, Manifest and Contract Guard
     runs-on: ubuntu-latest
 
     steps:
@@ -69,24 +69,39 @@ jobs:
       - name: Validate release manifest
         run: npm run validate:release
 
-      - name: Validate RAML contract
+      - name: Validate RAML syntax
         run: npm run validate:raml
+
+      - name: API Contract Guard
+        run: npm run contract:guard
 
       - name: Build Exchange package
         run: npm run package:exchange
+
+      - name: Generate HTML report
+        if: always()
+        run: npm run report:html
 
       - name: Publish validation summary
         if: always()
         run: |
           echo "## Release Flow Guardian" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f dist/release-flow-guardian-report.md ]; then
-            cat dist/release-flow-guardian-report.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/api-contract-diff.md ]; then
+            cat dist/api-contract-diff.md >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Relatório de validação não gerado." >> "$GITHUB_STEP_SUMMARY"
+            echo "API Contract Guard não gerou diff." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### HTML Report" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/release-flow-guardian-report.html ]; then
+            echo "HTML report gerado como artifact: release-flow-guardian-report.html" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "HTML report não gerado." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload validation artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mule-tlf-com-test-validation-artifacts
@@ -94,6 +109,7 @@ jobs:
             dist/*.zip
             dist/*.md
             dist/*.json
+            dist/*.html
 
   publish-exchange:
     name: Publish RAML to Anypoint Exchange
@@ -131,14 +147,24 @@ jobs:
           npm install -g anypoint-cli-v4
           anypoint-cli-v4 --version
 
-      - name: Validate RAML and manifest before publish
-        run: npm run validate
+      - name: Validate release manifest
+        run: npm run validate:release
+
+      - name: Validate RAML syntax
+        run: npm run validate:raml
+
+      - name: API Contract Guard
+        run: npm run contract:guard
 
       - name: Build Exchange package
         run: npm run package:exchange
 
       - name: Publish to Exchange with auto bump
         run: npm run publish:exchange
+
+      - name: Generate final HTML report
+        if: always()
+        run: npm run report:html
 
       - name: Publish Exchange summary
         if: always()
@@ -150,6 +176,11 @@ jobs:
           else
             echo "Relatório de publicação não gerado." >> "$GITHUB_STEP_SUMMARY"
           fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/api-contract-diff.md ]; then
+            echo "## API Contract Guard" >> "$GITHUB_STEP_SUMMARY"
+            cat dist/api-contract-diff.md >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload publish artifacts
         if: always()
@@ -157,5 +188,7 @@ jobs:
         with:
           name: mule-tlf-com-test-exchange-publish-report
           path: |
-            dist/exchange-publish-report.md
-            dist/exchange-publish-report.json
+            dist/*.zip
+            dist/*.md
+            dist/*.json
+            dist/*.html
