@@ -30,8 +30,6 @@ validate_var() {
 validate_var ANYPOINT_CLIENT_ID
 validate_var ANYPOINT_CLIENT_SECRET
 validate_var ANYPOINT_ORG
-validate_var ANYPOINT_ENV
-
 if [ "$missing" -eq 1 ]; then
   echo "Corrija as variáveis antes de publicar no Exchange."
   exit 1
@@ -45,8 +43,8 @@ fi
 
 GROUP_ID="${EXCHANGE_GROUP_ID:-$ANYPOINT_ORG}"
 ASSET_IDENTIFIER="${GROUP_ID}/${EXCHANGE_ASSET_ID}/${EXCHANGE_ASSET_VERSION}"
-PROPERTIES_JSON="{"apiVersion":"${API_VERSION}","mainFile":"${API_MAIN_FILE}","contactName":"${CONTACT_NAME}","contactEmail":"${CONTACT_EMAIL}"}"
-FILES_JSON="{"raml.zip":"${EXCHANGE_ZIP}"}"
+PROPERTIES_JSON=$(printf '{"apiVersion":"%s","mainFile":"%s","contactName":"%s","contactEmail":"%s"}' "$API_VERSION" "$API_MAIN_FILE" "$CONTACT_NAME" "$CONTACT_EMAIL")
+FILES_JSON=$(printf '{"raml.zip":"%s"}' "$EXCHANGE_ZIP")
 
 echo "================================================================================"
 echo "🔐 Configurando Anypoint CLI v4"
@@ -55,6 +53,7 @@ anypoint-cli-v4 conf client_id "$ANYPOINT_CLIENT_ID"
 anypoint-cli-v4 conf client_secret "$ANYPOINT_CLIENT_SECRET"
 anypoint-cli-v4 conf organization "$ANYPOINT_ORG"
 anypoint-cli-v4 conf host "$ANYPOINT_HOST"
+# Exchange/Design Center assets não exigem ANYPOINT_ENV. Ambiente entra depois para Runtime/API Manager.
 
 echo "================================================================================"
 echo "🧪 Testando autenticação Anypoint"
