@@ -1,86 +1,70 @@
 # mule-tlf-com-test
 
-Projeto RAML/Design Center usado como laboratório do Release Flow Guardian.
+Projeto RAML consumidor do **Release Flow Guardian Core**.
 
-Agora este repositório está no modelo **core consumer**:
+Este repositório mantém apenas o contrato da API e os arquivos de configuração/evidência. O motor do Guardian fica no repositório global:
 
-- Este repo guarda o contrato da API e configurações locais.
-- O motor global fica no repo `release-flow-guardian-core`.
+```text
+https://github.com/LeonelIntegrationXpert/release-flow-guardian-core
+```
 
-## Arquivos locais importantes
+## Estrutura
 
 ```text
 api.raml
 release/guardian.config.yml
-release/release-manifest.yml
 release/api-contract-baseline.json
 release/breaking-changes.yml
+release/release-manifest.yml
+tools/guardian.cmd
+.github/workflows/release-flow-guardian.yml
 ```
 
-## Primeiro uso local
+## Rodar local no Windows
 
-Extraia este projeto e o `release-flow-guardian-core` lado a lado:
+```bat
+tools\guardian.cmd
+```
+
+Opções principais:
 
 ```text
-Release Flow Guardian/
-├─ release-flow-guardian-core/
-└─ mule-tlf-com-test/
+[1] Baixar/atualizar core
+[2] Validar projeto
+[3] Rodar preflight completo
+[4] Abrir console local
+[5] Gerar report HTML
+[6] Limpar cache do core
 ```
 
-Depois rode:
-
-```bash
-npm run guardian:install:local
-npm run validate
-npm run guardian:preflight
-npm run config:ui
-```
-
-Abra:
+O console abre em:
 
 ```text
 http://127.0.0.1:3030
 ```
 
-## Depois que o core estiver no GitHub
+## Como funciona
 
-```bash
-npm run guardian:install:git
-npm run validate
+O launcher baixa o core em cache local, instala dependências fora deste projeto e executa:
+
+```bat
+node "%CORE_CACHE_DIR%\bin\guardian.js" validate --project "%PROJECT_DIR%"
 ```
+
+Assim, este projeto não precisa carregar scripts pesados, console duplicado ou `node_modules` para usar o Guardian.
 
 ## GitHub Actions
 
-O workflow local chama o reusable workflow global:
+A pipeline usa o workflow reutilizável do core:
 
-```text
-.github/workflows/release-flow-guardian.yml
+```yaml
+uses: LeonelIntegrationXpert/release-flow-guardian-core/.github/workflows/raml-ci-exchange.yml@main
 ```
 
-Secrets necessários:
+## Contract Guard
 
-```text
-ANYPOINT_CONNECTED_APP_CLIENT_ID
-ANYPOINT_CONNECTED_APP_CLIENT_SECRET
-ANYPOINT_ORG
-ANYPOINT_HOST
-EXCHANGE_GROUP_ID
-```
-
-## Regra de contrato
-
-Endpoint removido sem aprovação em `release/breaking-changes.yml` bloqueia a pipeline.
-Endpoint removido com aprovação passa como WARN.
-
-
-## Observação importante sobre Exchange
-
-Este projeto consome o `release-flow-guardian-core` global. O pacote `raml.zip` gerado para o Exchange não deve incluir `exchange.json` raiz com placeholders.
-
-A configuração de publicação fica em:
-
-```text
-release/guardian.config.yml
-```
-
-A versão é resolvida automaticamente no publish pelo Guardian Core.
+- Stable Baseline Guard é obrigatório.
+- Git Diff Guard é complementar.
+- Endpoint removido sem aprovação bloqueia.
+- Endpoint removido aprovado passa com warning.
+- Se `finalDecision = BLOCK`, não publica no Exchange.

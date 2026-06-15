@@ -2,26 +2,10 @@
   "name": "mule-tlf-com-test",
   "version": "1.0.0",
   "private": true,
-  "description": "RAML Design Center lab project using global Release Flow Guardian Core.",
+  "description": "RAML consumer project using remote Release Flow Guardian Core.",
   "scripts": {
-    "guardian:install:local": "npm install --save-dev ../release-flow-guardian-core",
-    "guardian:install:git": "npm install --save-dev github:LeonelIntegrationXpert/release-flow-guardian-core#main",
-    "deps:check": "release-flow-guardian deps:check",
-    "validate": "release-flow-guardian validate",
-    "validate:config": "release-flow-guardian validate:config",
-    "validate:release": "release-flow-guardian validate:release",
-    "validate:raml": "release-flow-guardian validate:raml",
-    "stability:resolve": "release-flow-guardian stability:resolve",
-    "contract:extract": "release-flow-guardian contract:extract",
-    "contract:guard": "release-flow-guardian contract:guard",
-    "package:exchange": "release-flow-guardian package:exchange",
-    "publish:exchange": "release-flow-guardian publish:exchange",
-    "report:html": "release-flow-guardian report:html",
-    "config:ui": "release-flow-guardian console",
-    "guardian:preflight": "release-flow-guardian preflight",
-    "ci:publish": "release-flow-guardian ci:publish"
+    "guardian": "tools\\guardian.cmd"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=20"
   }
