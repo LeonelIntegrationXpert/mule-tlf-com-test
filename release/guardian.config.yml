@@ -1,10 +1,3 @@
-# ============================================================================================
-# Release Flow Guardian | Configuração central do projeto
-# ============================================================================================
-# Este arquivo é editável pelo Release Flow Guardian Console.
-# Não coloque secrets reais aqui. Use apenas nomes de variáveis de ambiente.
-# ============================================================================================
-
 project:
   name: mule-tlf-com-test
   displayName: Mule TLF COM Test
@@ -12,7 +5,6 @@ project:
   mainFile: api.raml
   owner: leonel.d.porto@accenture.com
   description: API RAML de laboratório para Release Flow Guardian.
-
 exchange:
   enabled: true
   assetId: mule-tlf-com-test
@@ -32,10 +24,9 @@ exchange:
     retry429MaxAttempts: 3
     retry5xxMaxAttempts: 3
     backoffSeconds: 10
-
 versioning:
   minorLine: "1.0"
-  initialVersion: "1.0.0"
+  initialVersion: 1.0.0
   strategy: patch-auto-bump
   stability:
     enabled: true
@@ -47,13 +38,12 @@ versioning:
       - stable
       - deprecated
   branchRules:
-    "feature/*": draft
+    feature/*: draft
     develop: beta
-    "release/next": beta
-    "release/current": rc
+    release/next: beta
+    release/current: rc
     main: stable
     master: stable
-
 contractGuard:
   enabled: true
   baselineMode: stable-only
@@ -78,7 +68,6 @@ contractGuard:
   blockRemovedSecurity: true
   blockRemovedTraits: true
   allowApprovedBreakingChanges: true
-
 endpointGovernance:
   enabled: true
   inventoryEnabled: true
@@ -98,7 +87,6 @@ endpointGovernance:
     requireExplicitConfirmationText: true
     confirmationText: CONFIRMO A REMOCAO DO CONTRATO
     neverDeleteWithoutBackup: true
-
 baseline:
   updateOnlyWhenStable: true
   updateOnDraft: false
@@ -107,7 +95,6 @@ baseline:
   updateOnStable: true
   updateOnDeprecated: false
   generateCandidateOnEveryRun: true
-
 reports:
   enabled: true
   outputDir: dist
@@ -123,14 +110,12 @@ reports:
   includeCommitInfo: true
   includeBreakingChanges: true
   includeActionChecklist: true
-
 evidence:
   keepInRepo: false
   publishAsArtifact: true
   latestReportDir: reports/latest
   historyDir: reports/history
   suggestedBranchForHistory: release-reports
-
 pipelines:
   githubActions:
     enabled: true
@@ -146,7 +131,6 @@ pipelines:
       - master
     validateOnPullRequest: true
     exclusiveLockRecommended: true
-
 security:
   neverStoreSecretsInRepo: true
   requiredSecrets:
