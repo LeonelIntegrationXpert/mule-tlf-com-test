@@ -1,0 +1,17 @@
+#%RAML 1.0 Trait
+displayName: Client Identification
+description: Headers opcionais para identificação do consumidor.
+headers:
+  x-client-name:
+    displayName: Client Name
+    description: Nome lógico do consumidor da API.
+    type: string
+    required: false
+    example: release-flow-guardian-lab
+  x-channel:
+    displayName: Channel
+    description: Canal de origem da chamada.
+    type: string
+    required: false
+    enum: [ WEB, BATCH, PIPELINE, DESIGN_CENTER, API_MANAGER, LOCAL ]
+    example: PIPELINE

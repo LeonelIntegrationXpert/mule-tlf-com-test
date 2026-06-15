@@ -1,0 +1,133 @@
+#%RAML 1.0 DataType
+displayName: ReleaseStatusResponse
+description: Resposta consolidada do status de uma release no laboratório Release Flow Guardian.
+type: object
+additionalProperties: false
+properties:
+  metadata:
+    type: object
+    required: true
+    additionalProperties: false
+    properties:
+      correlationId:
+        type: string
+        required: true
+        description: Identificador de rastreabilidade da requisição.
+        example: 8b4d4f92-3f77-4d2a-9a19-5fd0b6f9c001
+      timestamp:
+        type: datetime
+        required: true
+        description: Data e hora da resposta no padrão ISO 8601.
+        example: 2026-06-15T13:40:00Z
+      apiName:
+        type: string
+        required: true
+        example: mule-tlf-com-test
+      apiVersion:
+        type: string
+        required: true
+        example: v1
+  data:
+    type: object
+    required: true
+    additionalProperties: false
+    properties:
+      releaseId:
+        type: string
+        required: true
+        pattern: ^RLM[0-9]{6}$
+        example: RLM202606
+      applicationName:
+        type: string
+        required: true
+        example: mule-tlf-com-test
+      targetEnvironment:
+        type: string
+        required: true
+        enum: [ DEV, ESTEIRA1, ESTEIRA2, PREPROD, PRODLIKE, PRODUCAO ]
+        example: DEV
+      dryRun:
+        type: boolean
+        required: true
+        example: true
+      branchStrategy:
+        type: object
+        required: true
+        additionalProperties: false
+        properties:
+          featureBranch:
+            type: string
+            required: true
+            example: feature/rlm202606-release-status
+          nextReleaseBranch:
+            type: string
+            required: true
+            example: release/next
+          currentReleaseBranch:
+            type: string
+            required: true
+            example: release/current
+          productionBranch:
+            type: string
+            required: true
+            example: master
+      validation:
+        type: object
+        required: true
+        additionalProperties: false
+        properties:
+          status:
+            type: string
+            required: true
+            enum: [ READY_FOR_REVIEW, READY_FOR_DEV, BLOCKED, APPROVED, READY_FOR_DEPLOY ]
+            example: READY_FOR_REVIEW
+          summary:
+            type: string
+            required: true
+            example: Release pronta para revisão técnica em modo dry-run.
+          gates:
+            type: array
+            required: true
+            items:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                  required: true
+                  example: MANIFEST_VALIDATED
+                status:
+                  type: string
+                  required: true
+                  enum: [ OK, WARN, BLOCK ]
+                  example: OK
+                message:
+                  type: string
+                  required: true
+                  example: Manifest encontrado e compatível com a branch alvo.
+      evidence:
+        type: object
+        required: true
+        additionalProperties: false
+        properties:
+          manifestId:
+            type: string
+            required: true
+            example: manifest-RLM202606-mule-tlf-com-test
+          shdValidated:
+            type: boolean
+            required: true
+            example: true
+          apiManagerPolicyReview:
+            type: boolean
+            required: true
+            example: true
+          rollbackPlan:
+            type: boolean
+            required: true
+            example: true
+          evidenceStatus:
+            type: string
+            required: true
+            enum: [ COMPLETE, INCOMPLETE, NOT_REQUIRED ]
+            example: COMPLETE

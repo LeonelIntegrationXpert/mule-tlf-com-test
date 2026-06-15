@@ -1,0 +1,33 @@
+#%RAML 1.0 DataType
+displayName: ErrorResponse
+description: Estrutura padrão de erro para a API mule-tlf-com-test.
+type: object
+additionalProperties: false
+properties:
+  correlationId:
+    type: string
+    required: true
+    description: Identificador de rastreabilidade da requisição.
+    example: 8b4d4f92-3f77-4d2a-9a19-5fd0b6f9c001
+  timestamp:
+    type: datetime
+    required: true
+    description: Data e hora do erro no padrão ISO 8601.
+    example: 2026-06-15T13:40:00Z
+  error:
+    type: object
+    required: true
+    additionalProperties: false
+    properties:
+      code:
+        type: string
+        required: true
+        example: INVALID_RELEASE_ID
+      message:
+        type: string
+        required: true
+        example: O parâmetro releaseId deve seguir o padrão RLMYYYYMM.
+      details:
+        type: string
+        required: false
+        example: Valor recebido fora do padrão esperado.

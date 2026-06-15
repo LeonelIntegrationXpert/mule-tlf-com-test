@@ -1,0 +1,39 @@
+#%RAML 1.0 NamedExample
+value:
+  metadata:
+    correlationId: 8b4d4f92-3f77-4d2a-9a19-5fd0b6f9c001
+    timestamp: 2026-06-15T13:40:00Z
+    apiName: mule-tlf-com-test
+    apiVersion: v1
+  data:
+    releaseId: RLM202606
+    applicationName: mule-tlf-com-test
+    targetEnvironment: DEV
+    dryRun: true
+    branchStrategy:
+      featureBranch: feature/rlm202606-release-status
+      nextReleaseBranch: release/next
+      currentReleaseBranch: release/current
+      productionBranch: master
+    validation:
+      status: READY_FOR_REVIEW
+      summary: Release pronta para revisão técnica em modo dry-run.
+      gates:
+        - name: MANIFEST_VALIDATED
+          status: OK
+          message: Manifest encontrado e compatível com a branch alvo.
+        - name: SHD_VALIDATED
+          status: OK
+          message: Evidência SHD informada para o ambiente DEV.
+        - name: API_MANAGER_POLICY_REVIEW
+          status: WARN
+          message: Políticas serão revisadas manualmente antes da promoção.
+        - name: ROLLBACK_PLAN
+          status: OK
+          message: Plano de rollback informado no manifesto da release.
+    evidence:
+      manifestId: manifest-RLM202606-mule-tlf-com-test
+      shdValidated: true
+      apiManagerPolicyReview: true
+      rollbackPlan: true
+      evidenceStatus: COMPLETE

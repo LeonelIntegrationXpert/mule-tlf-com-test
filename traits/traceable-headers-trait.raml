@@ -1,0 +1,16 @@
+#%RAML 1.0 Trait
+displayName: Traceable Headers
+description: Headers padrão para rastreabilidade fim a fim.
+headers:
+  x-correlation-id:
+    displayName: Correlation Id
+    description: Identificador único da transação para rastreabilidade.
+    type: string
+    required: false
+    example: 8b4d4f92-3f77-4d2a-9a19-5fd0b6f9c001
+  x-request-id:
+    displayName: Request Id
+    description: Identificador opcional da requisição de origem.
+    type: string
+    required: false
+    example: req-20260615-0001

@@ -1,0 +1,34 @@
+release:
+  id: RLM202606
+  application: mule-tlf-com-test
+  owner: leonel.d.porto@accenture.com
+  status: draft
+  dryRun: true
+
+branch_strategy:
+  feature: feature/rlm202606-release-status
+  next: release/next
+  current: release/current
+  production: master
+
+environments:
+  sequence:
+    - B2B-DEV-FENIX
+    - B2B-Esteira1
+    - B2B-Esteira2
+    - B2B-PreProd
+    - B2B-Prodlike
+    - B2B-Producao
+
+gates:
+  manifest_required: true
+  shd_validation_required: true
+  api_manager_policy_review_required: true
+  design_center_drift_check_required: true
+  rollback_plan_required: true
+
+evidence:
+  shd_validated: true
+  api_manager_policy_review: true
+  rollback_plan: true
+  notes: Laboratório inicial para testar Release Flow Guardian com Design Center.

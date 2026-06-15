@@ -1,0 +1,99 @@
+#%RAML 1.0
+title: mule-tlf-com-test
+version: v1
+baseUri: https://api.telefonica.com.br/mule-tlf-com-test/{version}
+protocols: [ HTTPS ]
+mediaType: application/json
+
+annotationTypes:
+  owner: string
+  application: string
+  domain: string
+  layer: string
+  status: string
+  release: string
+
+(owner): Release Flow Guardian Lab
+(application): mule-tlf-com-test
+(domain): com
+(layer): experience
+(status): draft
+(release): RLM202606
+
+securitySchemes:
+  clientIdEnforcement: !include securitySchemes/client-id-enforcement-security-scheme.raml
+
+traits:
+  traceable: !include traits/traceable-headers-trait.raml
+  clientIdentified: !include traits/client-identification-trait.raml
+
+types:
+  ReleaseStatusResponse: !include types/release-status-response-data-type.raml
+  ErrorResponse: !include types/error-response-data-type.raml
+
+securedBy: [ clientIdEnforcement ]
+
+/release/v1/status/{releaseId}:
+  displayName: Release Status
+  description: |
+    Endpoint de laboratório para validar o fluxo de release da aplicação mule-tlf-com-test.
+
+    Este recurso simula uma consulta de status da release, retornando informações de branch strategy,
+    gates de validação, evidências obrigatórias e status final para revisão.
+  uriParameters:
+    releaseId:
+      displayName: Release Id
+      description: Identificador oficial da release no padrão RLMYYYYMM.
+      type: string
+      required: true
+      pattern: ^RLM[0-9]{6}$
+      example: RLM202606
+  get:
+    displayName: Consultar status da release
+    description: |
+      Consulta o status consolidado de uma release para apoiar validações do Release Flow Guardian.
+
+      Este endpoint foi criado para testes de estrutura de branches no Design Center:
+      feature/* → release/next → release/current → master/main.
+    is: [ traceable, clientIdentified ]
+    queryParameters:
+      environment:
+        displayName: Ambiente alvo
+        description: Ambiente usado para simular a etapa da release.
+        type: string
+        required: false
+        enum: [ DEV, ESTEIRA1, ESTEIRA2, PREPROD, PRODLIKE, PRODUCAO ]
+        default: DEV
+        example: DEV
+      dryRun:
+        displayName: Dry run
+        description: Quando verdadeiro, retorna apenas simulação sem efeito operacional.
+        type: boolean
+        required: false
+        default: true
+        example: true
+    responses:
+      200:
+        description: Status da release consultado com sucesso.
+        body:
+          application/json:
+            type: ReleaseStatusResponse
+            example: !include examples/release-status-200-example.raml
+      400:
+        description: Requisição inválida ou parâmetros fora do padrão esperado.
+        body:
+          application/json:
+            type: ErrorResponse
+            example: !include examples/error-400-example.raml
+      404:
+        description: Release não encontrada.
+        body:
+          application/json:
+            type: ErrorResponse
+            example: !include examples/error-404-example.raml
+      500:
+        description: Erro interno inesperado na simulação do status da release.
+        body:
+          application/json:
+            type: ErrorResponse
+            example: !include examples/error-500-example.raml

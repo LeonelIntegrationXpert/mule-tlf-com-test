@@ -1,0 +1,23 @@
+#%RAML 1.0 SecurityScheme
+displayName: Client ID Enforcement
+description: Simulação do padrão de segurança usado para validação de client_id/client_secret.
+type: x-client-id-enforcement
+describedBy:
+  headers:
+    client_id:
+      displayName: Client Id
+      description: Identificador da aplicação consumidora.
+      type: string
+      required: true
+      example: 8f4c1d2e-guardian-client
+    client_secret:
+      displayName: Client Secret
+      description: Segredo da aplicação consumidora.
+      type: string
+      required: true
+      example: 7e2c9f4a9b1d
+  responses:
+    401:
+      description: Credenciais ausentes ou inválidas.
+    403:
+      description: Consumidor não autorizado para acessar o recurso.

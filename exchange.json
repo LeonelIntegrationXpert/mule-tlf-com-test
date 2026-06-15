@@ -1,0 +1,10 @@
+{
+  "main": "api.raml",
+  "name": "mule-tlf-com-test-design-center",
+  "groupId": "3078b181-938c-405e-a2eb-d4ccf55d05af",
+  "assetId": "mule-tlf-com-test-design-center",
+  "version": "1.0.0",
+  "classifier": "raml",
+  "tags": [],
+  "descriptorVersion": "1.0.0"
+}
