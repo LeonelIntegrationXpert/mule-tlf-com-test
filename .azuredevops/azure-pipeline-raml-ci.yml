@@ -1,14 +1,3 @@
-# ============================================================================================
-# ✅ mule-tlf-com-test | RAML CI | Release Flow Guardian
-# ============================================================================================
-# Responsabilidade:
-#   - Validar release-manifest.yml
-#   - Validar sintaxe RAML
-#   - Executar API Contract Guard
-#   - Gerar pacote ZIP do Exchange
-#   - Gerar report HTML/JSON como artifact
-# ============================================================================================
-
 trigger:
   branches:
     include:
@@ -16,7 +5,6 @@ trigger:
       - master
       - release/current
       - release/next
-      - feature/*
 
 pr:
   branches:
@@ -32,73 +20,49 @@ pool:
 variables:
   APP_NAME: mule-tlf-com-test
   API_MAIN_FILE: api.raml
-  API_VERSION: v1
   EXCHANGE_ASSET_ID: mule-tlf-com-test
-  EXCHANGE_ASSET_NAME: Mule TLF COM Test
-  EXCHANGE_ASSET_DESCRIPTION: API RAML de laboratório para Release Flow Guardian.
-  EXCHANGE_ZIP: dist/mule-tlf-com-test-exchange.zip
-  EXCHANGE_MINOR_VERSION: "1.0"
-  EXCHANGE_INITIAL_VERSION: "1.0.0"
+  EXCHANGE_MINOR_VERSION: '1.0'
 
 steps:
   - checkout: self
-    clean: true
     fetchDepth: 0
 
-  - task: NodeTool@0
-    displayName: "Setup Node.js 20"
+  - task: UseNode@1
     inputs:
-      versionSpec: "20.x"
+      version: '20.x'
+    displayName: Setup Node.js
 
-  - task: Bash@3
-    displayName: "Install dependencies"
-    inputs:
-      targetType: inline
-      script: |
-        set -euo pipefail
-        npm install
+  - script: |
+      npm install --no-audit --no-fund
+      npm run deps:check
+    displayName: Install dependencies
 
-  - task: Bash@3
-    displayName: "Validate release manifest"
-    inputs:
-      targetType: inline
-      script: |
-        set -euo pipefail
-        npm run validate:release
+  - script: npm run validate:config
+    displayName: Validate Guardian config
 
-  - task: Bash@3
-    displayName: "Validate RAML syntax"
-    inputs:
-      targetType: inline
-      script: |
-        set -euo pipefail
-        npm run validate:raml
+  - script: npm run validate:release
+    displayName: Validate release manifest
 
-  - task: Bash@3
-    displayName: "API Contract Guard"
-    inputs:
-      targetType: inline
-      script: |
-        set -euo pipefail
-        npm run contract:guard
+  - script: npm run validate:raml
+    displayName: Validate RAML
 
-  - task: Bash@3
-    displayName: "Build Exchange package"
-    inputs:
-      targetType: inline
-      script: |
-        set -euo pipefail
-        npm run package:exchange
+  - script: npm run stability:resolve
+    displayName: Resolve stability
 
-  - task: Bash@3
-    displayName: "Generate HTML report"
+  - script: npm run contract:extract
+    displayName: Extract API contract
+
+  - script: npm run contract:guard
+    displayName: API Contract Guard
+
+  - script: npm run package:exchange
+    displayName: Build Exchange package
+
+  - script: npm run report:html
     condition: always()
-    inputs:
-      targetType: inline
-      script: |
-        npm run report:html || true
+    displayName: Generate HTML report
 
   - publish: dist
-    artifact: mule-tlf-com-test-validation-artifacts
+    artifact: release-flow-guardian-report
     condition: always()
-    displayName: "Publish validation artifacts"
+    displayName: Publish artifacts

@@ -1,23 +1,11 @@
 # ============================================================================================
 # Release Flow Guardian | Breaking Change Approval
 # ============================================================================================
-# Use este arquivo somente quando uma quebra de contrato for intencional.
-# Sem aprovação explícita, o API Contract Guard bloqueia remoção de endpoint/método,
-# remoção de parâmetros obrigatórios, response 200/201 removida, segurança removida,
-# traits removidas e mudanças incompatíveis de schema.
+# Default seguro: qualquer perda de endpoint/método/param/response/security/trait sem aprovação
+# explícita deve bloquear a pipeline.
 #
-# Regra segura:
-#   approved: false  -> nenhuma quebra é permitida
-#   approved: true   -> exige ticket, approvedBy e reason
-#
-# Para aprovar endpoint removido:
-# removedEndpoints:
-#   - method: GET
-#     path: /release/v1/status/{releaseId}
-#
-# Para aprovar uma regra específica, copie o ruleId do dist/api-contract-diff.md:
-# approvedRules:
-#   - RESPONSE_REMOVED:GET /release/v1/status/{releaseId}:200
+# Use a tela local `npm run config:ui` para aprovar remoções detectadas.
+# Aprovar remoção não altera o RAML; apenas permite que uma remoção já detectada passe com WARN.
 # ============================================================================================
 
 breakingChanges:
@@ -27,4 +15,11 @@ breakingChanges:
   reason: ""
   allowAllBreakingChanges: false
   removedEndpoints: []
+  removedMethods: []
+  removedQueryParams: []
+  removedUriParams: []
+  removedResponses: []
+  removedSecurity: []
+  removedTraits: []
   approvedRules: []
+  notes: ""

@@ -1,39 +1,10 @@
-# ============================================================================================
-# 🚀 mule-tlf-com-test | Exchange Publish | Release Flow Guardian
-# ============================================================================================
-# Responsabilidade:
-#   - Validar manifest/contrato
-#   - Executar API Contract Guard para evitar perda acidental de endpoints
-#   - Gerar pacote ZIP do RAML
-#   - Publicar no Anypoint Exchange usando Connected App
-#   - Resolver versão automaticamente:
-#       asset não existe -> 1.0.0
-#       asset existe     -> latest 1.0.x + 1
-#   - Tratar 409 com auto bump até 3 vezes
-#   - Bloquear 400 com diagnóstico claro
-#   - Gerar report HTML/JSON como evidência
-#
-# Variáveis secretas esperadas na pipeline ou variable group:
-#   ANYPOINT_CONNECTED_APP_CLIENT_ID
-#   ANYPOINT_CONNECTED_APP_CLIENT_SECRET
-#   ANYPOINT_ORG
-#   ANYPOINT_HOST
-#   EXCHANGE_GROUP_ID
-# ============================================================================================
-
-trigger:
-  branches:
-    include:
-      - main
-      - master
-
-pr: none
-
 parameters:
   - name: publishExchange
     displayName: Publicar no Exchange?
     type: boolean
     default: false
+
+trigger: none
 
 pool:
   vmImage: ubuntu-latest
@@ -46,164 +17,59 @@ variables:
   EXCHANGE_ASSET_NAME: Mule TLF COM Test
   EXCHANGE_ASSET_DESCRIPTION: API RAML de laboratório para Release Flow Guardian.
   EXCHANGE_ZIP: dist/mule-tlf-com-test-exchange.zip
-  EXCHANGE_MINOR_VERSION: "1.0"
-  EXCHANGE_INITIAL_VERSION: "1.0.0"
-  EXCHANGE_MAX_CONFLICT_BUMPS: "3"
-  EXCHANGE_MAX_TRANSIENT_RETRIES: "3"
+  EXCHANGE_MINOR_VERSION: '1.0'
+  EXCHANGE_INITIAL_VERSION: '1.0.0'
+  EXCHANGE_MAX_CONFLICT_BUMPS: '3'
+  EXCHANGE_MAX_TRANSIENT_RETRIES: '3'
 
-stages:
-  - stage: validate
-    displayName: "Validate RAML, Manifest and Contract Guard"
-    jobs:
-      - job: validate
-        displayName: "Validate contract"
-        steps:
-          - checkout: self
-            clean: true
-            fetchDepth: 0
+steps:
+  - checkout: self
+    fetchDepth: 0
 
-          - task: NodeTool@0
-            displayName: "Setup Node.js 20"
-            inputs:
-              versionSpec: "20.x"
+  - task: UseNode@1
+    inputs:
+      version: '20.x'
+    displayName: Setup Node.js
 
-          - task: Bash@3
-            displayName: "Install dependencies"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm install
+  - script: |
+      npm install --no-audit --no-fund
+      npm run deps:check
+    displayName: Install dependencies
 
-          - task: Bash@3
-            displayName: "Validate release manifest"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run validate:release
+  - script: npm run validate
+    displayName: Validate all Guardian gates
 
-          - task: Bash@3
-            displayName: "Validate RAML syntax"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run validate:raml
+  - script: npm run stability:resolve
+    displayName: Resolve stability
 
-          - task: Bash@3
-            displayName: "API Contract Guard"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run contract:guard
+  - script: npm run package:exchange
+    displayName: Build Exchange package
 
-          - task: Bash@3
-            displayName: "Build Exchange package"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run package:exchange
+  - script: npm run report:html
+    condition: always()
+    displayName: Generate pre-publish report
 
-          - task: Bash@3
-            displayName: "Generate HTML report"
-            condition: always()
-            inputs:
-              targetType: inline
-              script: |
-                npm run report:html || true
+  - script: |
+      npm install -g anypoint-cli-v4
+      anypoint-cli-v4 --version
+    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', true))
+    displayName: Install Anypoint CLI v4
 
-          - publish: dist
-            artifact: mule-tlf-com-test-validation-artifacts
-            condition: always()
-            displayName: "Publish validation artifacts"
+  - script: npm run publish:exchange
+    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', true))
+    env:
+      ANYPOINT_CLIENT_ID: $(ANYPOINT_CONNECTED_APP_CLIENT_ID)
+      ANYPOINT_CLIENT_SECRET: $(ANYPOINT_CONNECTED_APP_CLIENT_SECRET)
+      ANYPOINT_ORG: $(ANYPOINT_ORG)
+      ANYPOINT_HOST: $(ANYPOINT_HOST)
+      EXCHANGE_GROUP_ID: $(EXCHANGE_GROUP_ID)
+    displayName: Publish to Exchange with auto bump
 
-  - stage: publish_exchange
-    displayName: "Publish to Anypoint Exchange"
-    dependsOn: validate
-    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', 'true'))
-    # Para lock real no Azure, configure um Environment com Exclusive Lock no UI
-    # e converta este job para deployment job apontando para esse environment.
-    jobs:
-      - job: publish_exchange
-        displayName: "Publish RAML asset with auto bump"
-        steps:
-          - checkout: self
-            clean: true
-            fetchDepth: 0
+  - script: npm run report:html
+    condition: always()
+    displayName: Generate final report
 
-          - task: NodeTool@0
-            displayName: "Setup Node.js 20"
-            inputs:
-              versionSpec: "20.x"
-
-          - task: Bash@3
-            displayName: "Install dependencies and Anypoint CLI"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm install
-                npm install -g anypoint-cli-v4
-                anypoint-cli-v4 --version
-
-          - task: Bash@3
-            displayName: "Validate release manifest"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run validate:release
-
-          - task: Bash@3
-            displayName: "Validate RAML syntax"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run validate:raml
-
-          - task: Bash@3
-            displayName: "API Contract Guard"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run contract:guard
-
-          - task: Bash@3
-            displayName: "Build Exchange package"
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run package:exchange
-
-          - task: Bash@3
-            displayName: "Publish to Exchange with auto bump"
-            env:
-              ANYPOINT_CLIENT_ID: $(ANYPOINT_CONNECTED_APP_CLIENT_ID)
-              ANYPOINT_CLIENT_SECRET: $(ANYPOINT_CONNECTED_APP_CLIENT_SECRET)
-              ANYPOINT_ORG: $(ANYPOINT_ORG)
-              ANYPOINT_HOST: $(ANYPOINT_HOST)
-              EXCHANGE_GROUP_ID: $(EXCHANGE_GROUP_ID)
-            inputs:
-              targetType: inline
-              script: |
-                set -euo pipefail
-                npm run publish:exchange
-
-          - task: Bash@3
-            displayName: "Generate final HTML report"
-            condition: always()
-            inputs:
-              targetType: inline
-              script: |
-                npm run report:html || true
-
-          - publish: dist
-            artifact: mule-tlf-com-test-exchange-publish-report
-            condition: always()
-            displayName: "Publish Exchange report artifacts"
+  - publish: dist
+    artifact: release-flow-guardian-publish-report
+    condition: always()
+    displayName: Publish artifacts

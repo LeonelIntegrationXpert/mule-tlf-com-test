@@ -7,14 +7,12 @@ on:
       - master
       - release/current
       - release/next
-
   push:
     branches:
       - main
       - master
       - release/current
       - release/next
-
   workflow_dispatch:
     inputs:
       publish_exchange:
@@ -29,7 +27,6 @@ on:
 permissions:
   contents: read
 
-# Evita duas publicações simultâneas tentando resolver a mesma próxima versão no Exchange.
 concurrency:
   group: exchange-publish-${{ github.repository }}-mule-tlf-com-test-1-0
   cancel-in-progress: false
@@ -64,13 +61,24 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install --no-audit --no-fund
+          npm run deps:check
+
+      - name: Validate Guardian config
+        run: npm run validate:config
 
       - name: Validate release manifest
         run: npm run validate:release
 
       - name: Validate RAML syntax
         run: npm run validate:raml
+
+      - name: Resolve version stability
+        run: npm run stability:resolve
+
+      - name: Extract API contract
+        run: npm run contract:extract
 
       - name: API Contract Guard
         run: npm run contract:guard
@@ -87,29 +95,28 @@ jobs:
         run: |
           echo "## Release Flow Guardian" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f dist/api-contract-diff.md ]; then
+          if [ -f dist/release-flow-guardian-report.md ]; then
+            cat dist/release-flow-guardian-report.md >> "$GITHUB_STEP_SUMMARY"
+          elif [ -f dist/api-contract-diff.md ]; then
             cat dist/api-contract-diff.md >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "API Contract Guard não gerou diff." >> "$GITHUB_STEP_SUMMARY"
+            echo "Relatório não gerado." >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "### HTML Report" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f dist/release-flow-guardian-report.html ]; then
-            echo "HTML report gerado como artifact: release-flow-guardian-report.html" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "HTML report não gerado." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "### Artifacts" >> "$GITHUB_STEP_SUMMARY"
+          echo "Baixe o artifact para abrir o HTML report completo." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload validation artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mule-tlf-com-test-validation-artifacts
+          name: release-flow-guardian-${{ github.run_number }}
           path: |
             dist/*.zip
             dist/*.md
             dist/*.json
             dist/*.html
+            dist/*.yml
 
   publish-exchange:
     name: Publish RAML to Anypoint Exchange
@@ -140,24 +147,27 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install --no-audit --no-fund
+          npm run deps:check
 
       - name: Install Anypoint CLI v4
         run: |
           npm install -g anypoint-cli-v4
           anypoint-cli-v4 --version
 
-      - name: Validate release manifest
-        run: npm run validate:release
+      - name: Validate all gates
+        run: npm run validate
 
-      - name: Validate RAML syntax
-        run: npm run validate:raml
-
-      - name: API Contract Guard
-        run: npm run contract:guard
+      - name: Resolve version stability
+        run: npm run stability:resolve
 
       - name: Build Exchange package
         run: npm run package:exchange
+
+      - name: Generate pre-publish report
+        if: always()
+        run: npm run report:html
 
       - name: Publish to Exchange with auto bump
         run: npm run publish:exchange
@@ -173,22 +183,21 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           if [ -f dist/exchange-publish-report.md ]; then
             cat dist/exchange-publish-report.md >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Relatório de publicação não gerado." >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f dist/api-contract-diff.md ]; then
-            echo "## API Contract Guard" >> "$GITHUB_STEP_SUMMARY"
-            cat dist/api-contract-diff.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/release-flow-guardian-report.md ]; then
+            echo "## Guardian Report" >> "$GITHUB_STEP_SUMMARY"
+            cat dist/release-flow-guardian-report.md >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload publish artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mule-tlf-com-test-exchange-publish-report
+          name: release-flow-guardian-publish-${{ github.run_number }}
           path: |
             dist/*.zip
             dist/*.md
             dist/*.json
             dist/*.html
+            dist/*.yml

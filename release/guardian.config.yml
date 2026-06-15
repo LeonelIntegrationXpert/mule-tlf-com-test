@@ -1,0 +1,156 @@
+# ============================================================================================
+# Release Flow Guardian | Configuração central do projeto
+# ============================================================================================
+# Este arquivo é editável pelo Release Flow Guardian Console.
+# Não coloque secrets reais aqui. Use apenas nomes de variáveis de ambiente.
+# ============================================================================================
+
+project:
+  name: mule-tlf-com-test
+  displayName: Mule TLF COM Test
+  type: raml-api
+  mainFile: api.raml
+  owner: leonel.d.porto@accenture.com
+  description: API RAML de laboratório para Release Flow Guardian.
+
+exchange:
+  enabled: true
+  assetId: mule-tlf-com-test
+  assetName: Mule TLF COM Test
+  assetDescription: API RAML de laboratório para Release Flow Guardian.
+  groupIdEnv: EXCHANGE_GROUP_ID
+  hostEnv: ANYPOINT_HOST
+  orgEnv: ANYPOINT_ORG
+  clientIdEnv: ANYPOINT_CONNECTED_APP_CLIENT_ID
+  clientSecretEnv: ANYPOINT_CONNECTED_APP_CLIENT_SECRET
+  classifier: raml
+  mainFile: api.raml
+  autoBump:
+    enabled: true
+    max409Retries: 3
+    retry429MaxAttempts: 3
+    retry5xxMaxAttempts: 3
+    backoffSeconds: 10
+
+versioning:
+  minorLine: "1.0"
+  initialVersion: "1.0.0"
+  strategy: patch-auto-bump
+  stability:
+    enabled: true
+    default: draft
+    allowed:
+      - draft
+      - beta
+      - rc
+      - stable
+      - deprecated
+  branchRules:
+    "feature/*": draft
+    develop: beta
+    "release/next": beta
+    "release/current": rc
+    main: stable
+    master: stable
+
+contractGuard:
+  enabled: true
+  baselineMode: stable-only
+  baselineFile: release/api-contract-baseline.json
+  currentContractFile: dist/api-contract-current.json
+  diffFile: dist/api-contract-diff.json
+  breakingChangesFile: release/breaking-changes.yml
+  defaultBehavior:
+    removedEndpoint: block
+    removedMethod: block
+    removedRequiredQueryParam: block
+    removedUriParam: block
+    removedSuccessResponse: block
+    removedSecurity: block
+    removedTrait: block
+    removedType: warn
+  blockRemovedEndpoints: true
+  blockRemovedMethods: true
+  blockRemovedRequiredQueryParams: true
+  blockRemovedUriParams: true
+  blockRemovedSuccessResponses: true
+  blockRemovedSecurity: true
+  blockRemovedTraits: true
+  allowApprovedBreakingChanges: true
+
+endpointGovernance:
+  enabled: true
+  inventoryEnabled: true
+  showCurrentEndpoints: true
+  showBaselineEndpoints: true
+  showRemovedEndpoints: true
+  showNewEndpoints: true
+  allowRemovalApprovalFromUi: true
+  allowDirectRamlDeleteFromUi: false
+  requireTicketForRemoval: true
+  requireApproverForRemoval: true
+  requireReasonForRemoval: true
+  removalDefaultDecision: block
+  approvedRemovalDecision: warn
+  deletionSafety:
+    createBackupBeforeAnyChange: true
+    requireExplicitConfirmationText: true
+    confirmationText: CONFIRMO A REMOCAO DO CONTRATO
+    neverDeleteWithoutBackup: true
+
+baseline:
+  updateOnlyWhenStable: true
+  updateOnDraft: false
+  updateOnBeta: false
+  updateOnRc: false
+  updateOnStable: true
+  updateOnDeprecated: false
+  generateCandidateOnEveryRun: true
+
+reports:
+  enabled: true
+  outputDir: dist
+  html: true
+  json: true
+  markdown: true
+  style: dark-neon
+  includeContractInventory: true
+  includeEndpointGovernance: true
+  includeExchangeDetails: true
+  includeVersionStability: true
+  includeBranchInfo: true
+  includeCommitInfo: true
+  includeBreakingChanges: true
+  includeActionChecklist: true
+
+evidence:
+  keepInRepo: false
+  publishAsArtifact: true
+  latestReportDir: reports/latest
+  historyDir: reports/history
+  suggestedBranchForHistory: release-reports
+
+pipelines:
+  githubActions:
+    enabled: true
+    publishBranches:
+      - main
+      - master
+    validateOnPullRequest: true
+    concurrencyEnabled: true
+  azureDevOps:
+    enabled: true
+    publishBranches:
+      - main
+      - master
+    validateOnPullRequest: true
+    exclusiveLockRecommended: true
+
+security:
+  neverStoreSecretsInRepo: true
+  requiredSecrets:
+    - ANYPOINT_CONNECTED_APP_CLIENT_ID
+    - ANYPOINT_CONNECTED_APP_CLIENT_SECRET
+    - ANYPOINT_ORG
+    - ANYPOINT_HOST
+    - EXCHANGE_GROUP_ID

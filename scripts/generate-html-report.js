@@ -1,294 +1,154 @@
 #!/usr/bin/env node
-
 const fs = require('fs');
 const path = require('path');
+const { loadConfig, resolveStability } = require('./guardian-config');
 
 const DIST_DIR = process.env.DIST_DIR || 'dist';
-const OUTPUT_HTML = process.env.RELEASE_FLOW_REPORT_HTML || path.join(DIST_DIR, 'release-flow-guardian-report.html');
-const OUTPUT_JSON = process.env.RELEASE_FLOW_REPORT_JSON || path.join(DIST_DIR, 'release-flow-guardian-report.json');
+const OUTPUT_HTML = path.join(DIST_DIR, 'release-flow-guardian-report.html');
+const OUTPUT_JSON = path.join(DIST_DIR, 'release-flow-guardian-report.json');
+const OUTPUT_MD = path.join(DIST_DIR, 'release-flow-guardian-report.md');
 
 function readJson(file, fallback = null) {
   if (!fs.existsSync(file)) return fallback;
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf-8'));
-  } catch (error) {
-    return { error: `Falha ao ler ${file}`, details: String(error.message || error) };
-  }
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
 }
-
-function esc(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function statusClass(status) {
-  const value = String(status || '').toUpperCase();
-  if (value.includes('BLOCK') || value.includes('FAIL') || value.includes('ERROR')) return 'danger';
-  if (value.includes('WARN')) return 'warn';
-  if (value.includes('PUBLISHED') || value === 'OK' || value === 'READY') return 'ok';
+function esc(v) { return String(v ?? '').replace(/[&<>\"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function statusClass(v) {
+  const s = String(v || '').toUpperCase();
+  if (s.includes('BLOCK') || s.includes('ERROR') || s.includes('FAIL')) return 'danger';
+  if (s.includes('WARN') || s.includes('RC') || s.includes('BETA')) return 'warn';
+  if (s.includes('OK') || s.includes('READY') || s.includes('PUBLISH') || s.includes('STABLE')) return 'ok';
   return 'info';
 }
-
-function badge(status, label = status) {
-  return `<span class="badge ${statusClass(status)}">${esc(label || status)}</span>`;
+function badge(v, label = v) { return `<span class="badge ${statusClass(v)}">${esc(label || v)}</span>`; }
+function card(title, value, status='INFO', subtitle='') {
+  return `<section class="card ${statusClass(status)}"><div class="card-title">${esc(title)}</div><div class="card-value">${esc(value)}</div>${subtitle ? `<div class="card-subtitle">${esc(subtitle)}</div>` : ''}</section>`;
 }
-
-function card(title, value, status = 'INFO', subtitle = '') {
-  return `<section class="card ${statusClass(status)}">
-    <div class="card-title">${esc(title)}</div>
-    <div class="card-value">${esc(value)}</div>
-    ${subtitle ? `<div class="card-subtitle">${esc(subtitle)}</div>` : ''}
-  </section>`;
-}
-
-function rows(items, mapper) {
-  if (!items || !items.length) return '<tr><td colspan="4" class="muted">Nenhum registro.</td></tr>';
+function rows(items, mapper, colspan = 6) {
+  if (!items || !items.length) return `<tr><td colspan="${colspan}" class="muted">Nenhum registro.</td></tr>`;
   return items.map(mapper).join('\n');
 }
+function short(v) { return v ? String(v).slice(0, 12) : 'local'; }
+function endpointKey(e) { return `${String(e.method || '').toUpperCase()} ${e.path || ''}`.trim(); }
 
-function shortSha(value) {
-  return value ? String(value).slice(0, 12) : 'local';
-}
+fs.mkdirSync(DIST_DIR, { recursive: true });
 
-const contractDiff = readJson(path.join(DIST_DIR, 'api-contract-diff.json'), null);
-const currentContract = readJson(path.join(DIST_DIR, 'api-contract-current.json'), null);
+const config = loadConfig();
+const stability = resolveStability(config);
+const currentContract = readJson(path.join(DIST_DIR, 'api-contract-current.json'), { endpoints: [] });
+const baselineContract = readJson(path.join(DIST_DIR, 'api-contract-baseline-used.json'), readJson(config.contractGuard?.baselineFile || 'release/api-contract-baseline.json', { endpoints: [] }));
+const contractDiff = readJson(path.join(DIST_DIR, 'api-contract-diff.json'), { status: 'NOT_EXECUTED', findings: [], addedEndpoints: [], removedEndpoints: [], changedEndpoints: [], summary: {} });
 const exchangeReport = readJson(path.join(DIST_DIR, 'exchange-publish-report.json'), null);
 
 const context = {
-  appName: process.env.APP_NAME || 'mule-tlf-com-test',
-  assetId: process.env.EXCHANGE_ASSET_ID || exchangeReport?.assetId || 'mule-tlf-com-test',
-  groupId: process.env.EXCHANGE_GROUP_ID || exchangeReport?.groupId || process.env.ANYPOINT_ORG || 'N/A',
-  branch: process.env.GITHUB_REF_NAME || process.env.BUILD_SOURCEBRANCHNAME || process.env.BRANCH_NAME || 'local',
-  commit: shortSha(process.env.GITHUB_SHA || process.env.BUILD_SOURCEVERSION || ''),
+  projectName: config.project?.name || process.env.APP_NAME || 'mule-tlf-com-test',
+  displayName: config.project?.displayName || 'Mule TLF COM Test',
+  assetId: config.exchange?.assetId || process.env.EXCHANGE_ASSET_ID || 'mule-tlf-com-test',
+  branch: stability.branch,
+  commit: short(process.env.GITHUB_SHA || process.env.BUILD_SOURCEVERSION || ''),
+  provider: process.env.GITHUB_ACTIONS ? 'github' : process.env.TF_BUILD ? 'azure' : 'local',
   runId: process.env.GITHUB_RUN_NUMBER || process.env.BUILD_BUILDNUMBER || 'local',
-  generatedAt: new Date().toISOString(),
-  repository: process.env.GITHUB_REPOSITORY || process.env.BUILD_REPOSITORY_NAME || 'local',
+  generatedAt: new Date().toISOString()
 };
 
-const contractStatus = contractDiff?.status || 'NOT_EXECUTED';
-const exchangeStatus = exchangeReport?.status || 'NOT_PUBLISHED';
-const finalStatus = contractStatus === 'BLOCKED'
+const finalStatus = contractDiff.status === 'BLOCKED'
   ? 'BLOCKED'
-  : exchangeStatus === 'PUBLISHED' || exchangeStatus === 'PUBLISHED_WITH_WARNING'
-    ? exchangeStatus
-    : contractStatus === 'WARNING'
-      ? 'READY_WITH_WARNING'
+  : exchangeReport?.status === 'PUBLISHED' || exchangeReport?.status === 'PUBLISHED_WITH_WARNING'
+    ? exchangeReport.status
+    : contractDiff.status === 'WARNING'
+      ? 'WARNING'
       : 'READY';
+
+const approvals = contractDiff.approval || {};
+const removedApproved = new Set((approvals.removedEndpoints || []).map(endpointKey));
+const currentEndpoints = currentContract.endpoints || [];
+const baselineEndpoints = baselineContract.endpoints || [];
+const currentMap = new Map(currentEndpoints.map(e => [e.id || endpointKey(e), e]));
+const baselineMap = new Map(baselineEndpoints.map(e => [e.id || endpointKey(e), e]));
+const inventory = [];
+for (const id of new Set([...currentMap.keys(), ...baselineMap.keys()])) {
+  const cur = currentMap.get(id);
+  const base = baselineMap.get(id);
+  const endpoint = cur || base;
+  const status = cur && base ? 'EXISTING' : cur ? 'NEW' : 'REMOVED';
+  const decision = status === 'REMOVED' ? (removedApproved.has(endpointKey(endpoint)) ? 'APPROVED_REMOVAL' : 'BLOCK') : 'OK';
+  inventory.push({ id, endpoint, status, decision });
+}
+inventory.sort((a,b)=>a.id.localeCompare(b.id));
 
 const summary = {
   context,
   finalStatus,
+  stability,
+  configSnapshot: config,
   contract: contractDiff,
   currentContract,
+  baselineContract,
+  endpointGovernance: {
+    totalBaseline: baselineEndpoints.length,
+    totalCurrent: currentEndpoints.length,
+    totalNew: inventory.filter(i => i.status === 'NEW').length,
+    totalRemoved: inventory.filter(i => i.status === 'REMOVED').length,
+    totalBlocked: inventory.filter(i => i.decision === 'BLOCK').length,
+    totalApproved: inventory.filter(i => i.decision === 'APPROVED_REMOVAL').length,
+    inventory
+  },
   exchange: exchangeReport
 };
 
-fs.mkdirSync(DIST_DIR, { recursive: true });
-fs.writeFileSync(OUTPUT_JSON, JSON.stringify(summary, null, 2), 'utf-8');
+fs.writeFileSync(OUTPUT_JSON, JSON.stringify(summary, null, 2), 'utf8');
+fs.writeFileSync(path.join(DIST_DIR, 'guardian.config.snapshot.yml'), fs.existsSync('release/guardian.config.yml') ? fs.readFileSync('release/guardian.config.yml') : '', 'utf8');
 
-const endpoints = currentContract?.endpoints || [];
-const findings = contractDiff?.findings || [];
-const added = contractDiff?.addedEndpoints || [];
-const removed = contractDiff?.removedEndpoints || [];
-const changed = contractDiff?.changedEndpoints || [];
-const exchangeChecks = exchangeReport?.checks || [];
-const publishSteps = exchangeReport?.publish || [];
+const findings = contractDiff.findings || [];
+const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Release Flow Guardian — ${esc(context.projectName)}</title><style>
+:root{--bg:#050814;--panel:rgba(10,18,36,.9);--panel2:rgba(15,31,58,.9);--line:rgba(0,221,255,.25);--text:#eef7ff;--muted:#9db4ca;--cyan:#00ddff;--blue:#2979ff;--green:#40f29a;--yellow:#ffd166;--red:#ff4d6d;--shadow:0 0 34px rgba(0,221,255,.12)}*{box-sizing:border-box}body{margin:0;padding:30px;background:radial-gradient(circle at 10% 0,rgba(0,221,255,.17),transparent 28%),linear-gradient(135deg,#03040a,#071325 55%,#03040a);font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;color:var(--text)}.shell{max-width:1320px;margin:auto}.hero,.section,.card{border:1px solid var(--line);background:var(--panel);border-radius:26px;box-shadow:var(--shadow)}.hero{padding:30px;margin-bottom:18px;overflow:hidden;position:relative}.kicker{color:var(--cyan);font-weight:900;font-size:12px;letter-spacing:.15em;text-transform:uppercase}h1{font-size:clamp(32px,5vw,58px);letter-spacing:-.045em;margin:8px 0}.subtitle{color:var(--muted);max-width:900px;line-height:1.55}.chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.chip{border:1px solid var(--line);border-radius:999px;padding:8px 12px;background:rgba(0,221,255,.07)}.badge{border:1px solid currentColor;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:1000;text-transform:uppercase}.ok{color:var(--green)}.warn{color:var(--yellow)}.danger{color:var(--red)}.info{color:var(--cyan)}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{padding:18px;min-height:118px}.card-title{color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:900}.card-value{font-size:30px;font-weight:1000;margin-top:10px;letter-spacing:-.04em}.card-subtitle{color:var(--muted);font-size:13px;margin-top:8px}.section{padding:22px;margin-top:18px}.section h2{margin:0 0 14px}table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:14px}th{text-align:left;color:var(--cyan);font-size:12px;text-transform:uppercase;letter-spacing:.08em;padding:12px;border-bottom:1px solid var(--line)}td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}.muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.footer{text-align:center;color:var(--muted);padding:25px}@media(max-width:900px){body{padding:15px}.cards{grid-template-columns:1fr 1fr}}@media(max-width:560px){.cards{grid-template-columns:1fr}}
+</style></head><body><main class="shell">
+<section class="hero"><div class="kicker">Release Flow Guardian Report</div><h1>${esc(context.displayName)}</h1><p class="subtitle">Relatório executivo/técnico com validação RAML, manifesto, Contract Guard, Endpoint Governance, stability e Exchange Publish. Regra segura: endpoint removido sem aprovação explícita bloqueia a publicação.</p><div class="chips">${badge(finalStatus, finalStatus)}<span class="chip">Asset: <strong>${esc(context.assetId)}</strong></span><span class="chip">Branch: <strong>${esc(context.branch)}</strong></span><span class="chip">Commit: <strong>${esc(context.commit)}</strong></span><span class="chip">Provider: <strong>${esc(context.provider)}</strong></span><span class="chip">Stability: <strong>${esc(stability.stability.toUpperCase())}</strong></span></div></section>
+<section class="cards">
+${card('Status final', finalStatus, finalStatus, 'Resultado consolidado')}
+${card('Stability', stability.stability.toUpperCase(), stability.stability, `Regra: ${stability.matchedRule}`)}
+${card('Endpoints atuais', currentEndpoints.length, contractDiff.status, `Baseline: ${baselineEndpoints.length}`)}
+${card('Blocks', contractDiff.summary?.blocks ?? 0, contractDiff.summary?.blocks ? 'BLOCKED' : 'OK', 'Quebras sem aprovação')}
+${card('Novos', summary.endpointGovernance.totalNew, 'INFO', 'Permitido por padrão')}
+${card('Removidos', summary.endpointGovernance.totalRemoved, summary.endpointGovernance.totalRemoved ? 'WARNING' : 'OK', 'Default: BLOCK')}
+${card('Aprovados', summary.endpointGovernance.totalApproved, summary.endpointGovernance.totalApproved ? 'WARNING' : 'OK', 'WARN + permite')}
+${card('Exchange Version', exchangeReport?.resolvedVersion || 'N/A', exchangeReport?.status || 'INFO', exchangeReport?.latestVersionFound ? `Última: ${exchangeReport.latestVersionFound}` : 'Sem publish nesta execução')}
+</section>
+<section class="section"><h2>Endpoint Governance</h2><table><thead><tr><th>Status</th><th>Method</th><th>Path</th><th>Decision</th><th>Query Params</th><th>Responses</th></tr></thead><tbody>${rows(inventory, i => `<tr><td>${badge(i.status,i.status)}</td><td>${esc(i.endpoint.method)}</td><td class="mono">${esc(i.endpoint.path)}</td><td>${badge(i.decision,i.decision)}</td><td>${esc(Object.keys(i.endpoint.queryParameters||{}).join(', ') || '-')}</td><td>${esc(Object.keys(i.endpoint.responses||{}).join(', ') || '-')}</td></tr>`)}</tbody></table></section>
+<section class="section"><h2>Contract Guard Findings</h2><table><thead><tr><th>Severity</th><th>Rule</th><th>Message</th><th>Approval</th></tr></thead><tbody>${rows(findings, f => `<tr><td>${badge(f.severity,f.severity)}</td><td class="mono">${esc(f.ruleId)}</td><td>${esc(f.message)}</td><td>${f.details?.approval ? `${esc(f.details.approval.ticket)}<br>${esc(f.details.approval.reason)}` : '-'}</td></tr>`, 4)}</tbody></table></section>
+<section class="section"><h2>Exchange</h2><table><tbody><tr><td>Asset ID</td><td class="mono">${esc(context.assetId)}</td></tr><tr><td>Minor line</td><td>${esc(config.versioning?.minorLine || '1.0')}</td></tr><tr><td>Initial version</td><td>${esc(config.versioning?.initialVersion || '1.0.0')}</td></tr><tr><td>Resolved version</td><td>${esc(exchangeReport?.resolvedVersion || 'N/A')}</td></tr><tr><td>Publish result</td><td>${badge(exchangeReport?.status || 'NOT_PUBLISHED')}</td></tr></tbody></table></section>
+<section class="section"><h2>Stability / Baseline</h2><table><tbody><tr><td>Branch</td><td>${esc(stability.branch)}</td></tr><tr><td>Matched rule</td><td>${esc(stability.matchedRule)}</td></tr><tr><td>Stability</td><td>${badge(stability.stability, stability.stability)}</td></tr><tr><td>Baseline update allowed</td><td>${stability.baselineUpdateAllowed ? badge('OK','YES') : badge('WARN','NO')}</td></tr></tbody></table></section>
+<div class="footer">Gerado em ${esc(context.generatedAt)} • Release Flow Guardian</div>
+</main></body></html>`;
 
-const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Release Flow Guardian Report — ${esc(context.appName)}</title>
-  <style>
-    :root {
-      --bg: #050814;
-      --panel: rgba(11, 20, 40, 0.88);
-      --panel-2: rgba(16, 31, 58, 0.88);
-      --line: rgba(0, 221, 255, 0.24);
-      --text: #eef7ff;
-      --muted: #9db4ca;
-      --cyan: #00ddff;
-      --blue: #237bff;
-      --green: #40f29a;
-      --yellow: #ffd166;
-      --red: #ff4d6d;
-      --purple: #a770ff;
-      --shadow: 0 0 32px rgba(0, 221, 255, 0.12);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
-      background:
-        radial-gradient(circle at 12% 8%, rgba(0, 221, 255, 0.16), transparent 28%),
-        radial-gradient(circle at 88% 0%, rgba(35, 123, 255, 0.16), transparent 25%),
-        linear-gradient(135deg, #03040a 0%, #071325 55%, #03040a 100%);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 32px;
-    }
-    .shell { max-width: 1280px; margin: 0 auto; }
-    .hero {
-      border: 1px solid var(--line);
-      background: linear-gradient(135deg, rgba(8, 19, 38, 0.94), rgba(8, 14, 30, 0.82));
-      border-radius: 28px;
-      padding: 32px;
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
-    }
-    .hero:before {
-      content: "";
-      position: absolute;
-      inset: -1px;
-      background: linear-gradient(90deg, transparent, rgba(0,221,255,.18), transparent);
-      transform: translateX(-100%);
-      animation: scan 7s infinite linear;
-      pointer-events: none;
-    }
-    @keyframes scan { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-    .kicker { color: var(--cyan); font-weight: 800; letter-spacing: .16em; font-size: 12px; text-transform: uppercase; }
-    h1 { margin: 10px 0 10px; font-size: clamp(30px, 5vw, 58px); line-height: 1.02; letter-spacing: -0.04em; }
-    .subtitle { color: var(--muted); font-size: 17px; max-width: 900px; line-height: 1.55; }
-    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
-    .chip { border: 1px solid var(--line); background: rgba(0, 221, 255, 0.06); border-radius: 999px; padding: 9px 12px; color: #dff8ff; font-size: 13px; }
-    .badge { border-radius: 999px; padding: 7px 11px; font-weight: 900; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid currentColor; }
-    .badge.ok { color: var(--green); background: rgba(64,242,154,.1); }
-    .badge.warn { color: var(--yellow); background: rgba(255,209,102,.1); }
-    .badge.danger { color: var(--red); background: rgba(255,77,109,.1); }
-    .badge.info { color: var(--cyan); background: rgba(0,221,255,.1); }
-    .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 22px 0; }
-    .card { border: 1px solid var(--line); background: var(--panel); border-radius: 22px; padding: 18px; box-shadow: var(--shadow); min-height: 122px; }
-    .card.ok { border-color: rgba(64,242,154,.32); }
-    .card.warn { border-color: rgba(255,209,102,.32); }
-    .card.danger { border-color: rgba(255,77,109,.38); }
-    .card-title { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-    .card-value { margin-top: 10px; font-size: 28px; font-weight: 900; letter-spacing: -0.04em; }
-    .card-subtitle { margin-top: 8px; color: var(--muted); font-size: 13px; line-height: 1.35; }
-    .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
-    .section { border: 1px solid var(--line); background: var(--panel); border-radius: 24px; padding: 22px; margin-top: 18px; box-shadow: var(--shadow); }
-    .section h2 { margin: 0 0 14px; font-size: 22px; letter-spacing: -0.02em; }
-    .section p { color: var(--muted); line-height: 1.5; }
-    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 14px; }
-    th { color: var(--cyan); text-align: left; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 12px; border-bottom: 1px solid var(--line); }
-    td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,.06); color: #e8f3ff; vertical-align: top; }
-    tr:hover td { background: rgba(0,221,255,.04); }
-    .muted { color: var(--muted); }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .pill { display: inline-flex; border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 900; border: 1px solid var(--line); color: var(--cyan); background: rgba(0,221,255,.08); }
-    .footer { color: var(--muted); text-align: center; padding: 26px; font-size: 13px; }
-    @media (max-width: 980px) { .cards { grid-template-columns: repeat(2, 1fr); } .grid { grid-template-columns: 1fr; } body { padding: 16px; } }
-    @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } .hero { padding: 22px; } }
-  </style>
-</head>
-<body>
-  <main class="shell">
-    <section class="hero">
-      <div class="kicker">Release Flow Guardian</div>
-      <h1>${esc(context.appName)}</h1>
-      <div class="subtitle">Relatório executivo/técnico da validação RAML, Contract Guard, pacote Exchange e publicação com auto bump. O objetivo é detectar perda acidental de endpoint antes da publicação.</div>
-      <div class="meta">
-        ${badge(finalStatus, finalStatus)}
-        <span class="chip">Asset: <strong>${esc(context.assetId)}</strong></span>
-        <span class="chip">Branch: <strong>${esc(context.branch)}</strong></span>
-        <span class="chip">Commit: <strong>${esc(context.commit)}</strong></span>
-        <span class="chip">Run: <strong>${esc(context.runId)}</strong></span>
-        <span class="chip">Gerado: <strong>${esc(context.generatedAt)}</strong></span>
-      </div>
-    </section>
+fs.writeFileSync(OUTPUT_HTML, html, 'utf8');
 
-    <section class="cards">
-      ${card('Status final', finalStatus, finalStatus, 'Resultado consolidado do Guardian')}
-      ${card('Endpoints atuais', endpoints.length, contractStatus, 'Inventário extraído do RAML atual')}
-      ${card('Breaking blocks', contractDiff?.summary?.blocks ?? 'N/A', contractDiff?.summary?.blocks ? 'BLOCKED' : 'OK', 'Remoções/quebras sem aprovação')}
-      ${card('Exchange version', exchangeReport?.resolvedVersion || 'N/A', exchangeStatus, exchangeReport?.latestVersionFound ? `Última anterior: ${exchangeReport.latestVersionFound}` : 'Ainda não publicado nesta execução')}
-    </section>
-
-    <section class="grid">
-      <section class="section">
-        <h2>API Contract Guard</h2>
-        <p>Status: ${badge(contractStatus, contractStatus)} Baseline: <span class="mono">${esc(contractDiff?.baselineSource || 'N/A')}</span></p>
-        <table>
-          <thead><tr><th>Tipo</th><th>Endpoint</th><th>Detalhe</th><th>Status</th></tr></thead>
-          <tbody>
-            ${rows(findings, (item) => `<tr><td>${esc(item.ruleId?.split(':')[0] || 'finding')}</td><td class="mono">${esc(item.details?.endpoint || item.details?.endpoint?.id || item.details?.path || '')}</td><td>${esc(item.message)}</td><td>${badge(item.severity, item.severity)}</td></tr>`)}
-          </tbody>
-        </table>
-      </section>
-
-      <section class="section">
-        <h2>Resumo do contrato</h2>
-        <table>
-          <tbody>
-            <tr><td>Endpoints anteriores</td><td class="mono">${esc(contractDiff?.summary?.previousEndpoints ?? 'N/A')}</td></tr>
-            <tr><td>Endpoints atuais</td><td class="mono">${esc(contractDiff?.summary?.currentEndpoints ?? endpoints.length)}</td></tr>
-            <tr><td>Novos</td><td class="mono">${esc(contractDiff?.summary?.addedEndpoints ?? 0)}</td></tr>
-            <tr><td>Removidos</td><td class="mono">${esc(contractDiff?.summary?.removedEndpoints ?? 0)}</td></tr>
-            <tr><td>Alterados</td><td class="mono">${esc(contractDiff?.summary?.changedEndpoints ?? 0)}</td></tr>
-            <tr><td>Warnings aprovados</td><td class="mono">${esc(contractDiff?.summary?.approvedWarnings ?? 0)}</td></tr>
-          </tbody>
-        </table>
-      </section>
-    </section>
-
-    <section class="section">
-      <h2>Endpoints atuais</h2>
-      <table>
-        <thead><tr><th>Método</th><th>Path</th><th>Query Params</th><th>Responses</th></tr></thead>
-        <tbody>
-          ${rows(endpoints, (endpoint) => `<tr><td><span class="pill">${esc(endpoint.method)}</span></td><td class="mono">${esc(endpoint.path)}</td><td>${esc(Object.keys(endpoint.queryParameters || {}).join(', ') || 'nenhum')}</td><td>${esc(Object.keys(endpoint.responses || {}).join(', ') || 'nenhuma')}</td></tr>`)}
-        </tbody>
-      </table>
-    </section>
-
-    <section class="grid">
-      <section class="section">
-        <h2>Endpoints novos</h2>
-        <table><tbody>${rows(added, (endpoint) => `<tr><td><span class="pill">+ ${esc(endpoint.method)}</span></td><td class="mono">${esc(endpoint.path)}</td><td>${esc(endpoint.displayName || '')}</td><td>${badge('OK', 'INFO')}</td></tr>`)}</tbody></table>
-      </section>
-      <section class="section">
-        <h2>Endpoints removidos</h2>
-        <table><tbody>${rows(removed, (endpoint) => `<tr><td><span class="pill">- ${esc(endpoint.method)}</span></td><td class="mono">${esc(endpoint.path)}</td><td>${esc(endpoint.displayName || '')}</td><td>${badge('BLOCKED', 'BLOCK')}</td></tr>`)}</tbody></table>
-      </section>
-    </section>
-
-    <section class="section">
-      <h2>Exchange Publish</h2>
-      <p>Status: ${badge(exchangeStatus, exchangeStatus)} Asset: <span class="mono">${esc(context.groupId)}/${esc(context.assetId)}</span></p>
-      <table>
-        <thead><tr><th>Etapa</th><th>Mensagem</th><th>Detalhe</th><th>Status</th></tr></thead>
-        <tbody>
-          ${rows([...exchangeChecks, ...publishSteps], (item, index) => `<tr><td>${index + 1}</td><td>${esc(item.message)}</td><td class="mono">${esc(item.details || '')}</td><td>${badge(item.status, item.status)}</td></tr>`)}
-        </tbody>
-      </table>
-    </section>
-
-    <section class="section">
-      <h2>Arquivos de evidência</h2>
-      <table>
-        <tbody>
-          <tr><td>HTML</td><td class="mono">${esc(OUTPUT_HTML)}</td></tr>
-          <tr><td>JSON consolidado</td><td class="mono">${esc(OUTPUT_JSON)}</td></tr>
-          <tr><td>Contract diff</td><td class="mono">${esc(path.join(DIST_DIR, 'api-contract-diff.json'))}</td></tr>
-          <tr><td>Exchange report</td><td class="mono">${esc(path.join(DIST_DIR, 'exchange-publish-report.json'))}</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <div class="footer">Release Flow Guardian • Código fonte na main • Evidência como artifact • Histórico consultável fora da branch principal</div>
-  </main>
-</body>
-</html>`;
-
-fs.writeFileSync(OUTPUT_HTML, html, 'utf-8');
+const md = [
+  '# Release Flow Guardian Report', '',
+  `- **Project:** ${context.projectName}`,
+  `- **Asset:** ${context.assetId}`,
+  `- **Branch:** ${context.branch}`,
+  `- **Commit:** ${context.commit}`,
+  `- **Status:** ${finalStatus}`,
+  `- **Stability:** ${stability.stability}`,
+  '',
+  '## Endpoint Governance', '',
+  `- Baseline endpoints: ${baselineEndpoints.length}`,
+  `- Current endpoints: ${currentEndpoints.length}`,
+  `- New endpoints: ${summary.endpointGovernance.totalNew}`,
+  `- Removed endpoints: ${summary.endpointGovernance.totalRemoved}`,
+  `- Blocked removals: ${summary.endpointGovernance.totalBlocked}`,
+  `- Approved removals: ${summary.endpointGovernance.totalApproved}`,
+  '',
+  '## Findings', '',
+  ...(findings.length ? findings.map(f => `- [${f.severity}] ${f.message} (${f.ruleId})`) : ['- Nenhum finding.']),
+  ''
+].join('\n');
+fs.writeFileSync(OUTPUT_MD, md, 'utf8');
 
 console.log('================================================================================');
 console.log('HTML REPORT');
 console.log('================================================================================');
 console.log(`✅ HTML gerado: ${OUTPUT_HTML}`);
 console.log(`✅ JSON consolidado: ${OUTPUT_JSON}`);
+console.log(`✅ Markdown gerado: ${OUTPUT_MD}`);

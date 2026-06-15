@@ -193,3 +193,78 @@ Documentação completa:
 ```text
 docs/contract-guard-and-html-report.md
 ```
+
+
+---
+
+## Release Flow Guardian Console
+
+Este projeto agora possui uma tela local para configuração e governança de contrato.
+
+```bash
+npm install
+npm run config:ui
+```
+
+Acesse:
+
+```text
+http://127.0.0.1:3030
+```
+
+A tela permite:
+
+- editar `release/guardian.config.yml`
+- visualizar endpoints atuais do RAML
+- comparar endpoints com o baseline oficial
+- detectar endpoints removidos
+- aprovar remoções intencionais em `release/breaking-changes.yml`
+- gerar backups antes de salvar
+
+## Correção do erro `Cannot find module 'yaml'`
+
+O projeto depende explicitamente de `yaml` em `package.json`.
+
+A pipeline agora executa:
+
+```bash
+npm install --no-audit --no-fund
+npm run deps:check
+```
+
+Isso valida logo no início se `yaml` e `raml-1-parser` foram instalados corretamente, evitando falha tardia em `scripts/check-release-manifest.js`.
+
+## Comandos principais
+
+```bash
+npm install
+npm run deps:check
+npm run validate:config
+npm run validate
+npm run contract:extract
+npm run contract:guard
+npm run package:exchange
+npm run report:html
+npm run config:ui
+```
+
+## Regra de perda de endpoint
+
+Default seguro:
+
+```text
+Endpoint removido sem aprovação = BLOCK
+Endpoint removido com aprovação = WARN
+```
+
+Aprovação deve ser feita via `release/breaking-changes.yml` ou pela tela local.
+
+## Secrets obrigatórios
+
+```text
+ANYPOINT_CONNECTED_APP_CLIENT_ID
+ANYPOINT_CONNECTED_APP_CLIENT_SECRET
+ANYPOINT_ORG
+ANYPOINT_HOST
+EXCHANGE_GROUP_ID
+```

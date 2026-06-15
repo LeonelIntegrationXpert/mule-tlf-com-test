@@ -4,17 +4,22 @@
   "private": true,
   "description": "RAML Design Center lab project for Release Flow Guardian.",
   "scripts": {
-    "validate": "npm run validate:release && npm run validate:raml && npm run contract:guard",
+    "deps:check": "node scripts/ensure-dependencies.js",
+    "validate": "npm run deps:check && npm run validate:config && npm run validate:release && npm run validate:raml && npm run contract:extract && npm run contract:guard",
+    "validate:config": "node scripts/validate-guardian-config.js",
     "validate:raml": "node scripts/validate-raml.js api.raml",
     "validate:release": "node scripts/check-release-manifest.js",
+    "stability:resolve": "node scripts/resolve-stability.js",
+    "contract:extract": "node scripts/extract-raml-contract.js api.raml dist/api-contract-current.json",
+    "contract:guard": "node scripts/compare-api-contract.js api.raml",
     "package:exchange": "bash scripts/build-exchange-package.sh",
     "publish:exchange": "node scripts/exchange-publish-guardian.js",
     "publish:exchange:legacy-wrapper": "bash scripts/publish-exchange.sh",
-    "contract:extract": "node scripts/extract-raml-contract.js api.raml dist/api-contract-current.json",
-    "contract:guard": "node scripts/compare-api-contract.js api.raml",
     "report:html": "node scripts/generate-html-report.js",
-    "ci:validate": "npm run validate && npm run package:exchange && npm run report:html",
-    "ci:publish": "npm run validate && npm run package:exchange && npm run publish:exchange && npm run report:html"
+    "config:ui": "node tools/config-console/server.js",
+    "guardian:preflight": "npm run validate && npm run package:exchange && npm run report:html",
+    "ci:validate": "npm run guardian:preflight",
+    "ci:publish": "npm run validate && npm run stability:resolve && npm run package:exchange && npm run publish:exchange && npm run report:html"
   },
   "dependencies": {
     "raml-1-parser": "1.1.67",
