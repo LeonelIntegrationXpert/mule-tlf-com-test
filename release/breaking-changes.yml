@@ -1,20 +1,15 @@
-# ============================================================================================
-# Release Flow Guardian | Breaking Change Approval
-# ============================================================================================
-# Default seguro: qualquer perda de endpoint/método/param/response/security/trait sem aprovação
-# explícita deve bloquear a pipeline.
-#
-# Use a tela local `npm run config:ui` para aprovar remoções detectadas.
-# Aprovar remoção não altera o RAML; apenas permite que uma remoção já detectada passe com WARN.
-# ============================================================================================
-
 breakingChanges:
-  approved: false
-  ticket: ""
-  approvedBy: ""
-  reason: ""
+  approved: true
+  ticket: RLM202606
+  approvedBy: leonel.d.porto@accenture.com
+  reason: teste
   allowAllBreakingChanges: false
-  removedEndpoints: []
+  removedEndpoints:
+    - method: GET
+      path: /release/v1/status/{releaseId}
+      replacement: ""
+      approvedAt: 2026-06-15T17:58:32.373Z
+      notes: ""
   removedMethods: []
   removedQueryParams: []
   removedUriParams: []
