@@ -1,15 +1,10 @@
 breakingChanges:
   approved: true
-  ticket: RLM202606
-  approvedBy: leonel.d.porto@accenture.com
-  reason: teste
+  ticket: dsfds
+  approvedBy: dsfsdf
+  reason: dsfs
   allowAllBreakingChanges: false
-  removedEndpoints:
-    - method: GET
-      path: /release/v1/status/{releaseId}
-      replacement: ""
-      approvedAt: 2026-06-15T17:58:32.373Z
-      notes: ""
+  removedEndpoints: []
   removedMethods: []
   removedQueryParams: []
   removedUriParams: []
@@ -18,3 +13,18 @@ breakingChanges:
   removedTraits: []
   approvedRules: []
   notes: ""
+  changedEndpoints: []
+  replacedEndpoints: []
+  possibleReplacements:
+    - ticket: dsfds
+      approvedBy: dsfsdf
+      reason: dsfs
+      approvedAt: 2026-06-16T02:54:38.082Z
+      notes: ""
+      oldMethod: GET
+      oldPath: /release/v1/statusS/{releaseId}
+      newMethod: GET
+      newPath: /release/v1/status/{releaseId}
+      similarityScore: 99
+      breaking: true
+      replacementType: possible-replacement
