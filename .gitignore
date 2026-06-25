@@ -5,3 +5,19 @@ release/backups/
 .env
 *.log
 .DS_Store
+
+# Premium Guardian generated artifacts
+reports/latest/
+reports/history/
+dist/
+release/backups/
+*.zip
+*.tgz
+*.tmp
+*.bak
+*.p12
+*.jks
+*.pem
+*.key
+settings-local.xml
+.npmrc.local

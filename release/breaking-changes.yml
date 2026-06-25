@@ -1,8 +1,11 @@
 breakingChanges:
-  approved: true
-  ticket: dsfds
-  approvedBy: dsfsdf
-  reason: dsfs
+  # Premium mode: no generic approval.
+  # Set approved=true only when each item below has ticket, approvedBy, reason and approvedAt.
+  approved: false
+  ticket: ""
+  approvedBy: ""
+  approvedAt: ""
+  reason: ""
   allowAllBreakingChanges: false
   removedEndpoints: []
   removedMethods: []
@@ -11,20 +14,7 @@ breakingChanges:
   removedResponses: []
   removedSecurity: []
   removedTraits: []
-  approvedRules: []
-  notes: ""
   changedEndpoints: []
   replacedEndpoints: []
-  possibleReplacements:
-    - ticket: dsfds
-      approvedBy: dsfsdf
-      reason: dsfs
-      approvedAt: 2026-06-16T02:54:38.082Z
-      notes: ""
-      oldMethod: GET
-      oldPath: /release/v1/statusS/{releaseId}
-      newMethod: GET
-      newPath: /release/v1/status/{releaseId}
-      similarityScore: 99
-      breaking: true
-      replacementType: possible-replacement
+  approvedRules: []
+  notes: "Premium template: approvals must be specific, traceable and auditable."

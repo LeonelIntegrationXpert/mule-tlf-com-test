@@ -1,25 +1,98 @@
 trigger: none
+pr: none
 
 parameters:
   - name: publishExchange
     displayName: Publicar no Exchange?
     type: boolean
     default: false
+  - name: requireManualApproval
+    displayName: Exigir approval/environment?
+    type: boolean
+    default: true
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: ubuntu-22.04
 
-resources:
-  repositories:
-    - repository: guardian
-      type: github
-      name: LeonelIntegrationXpert/release-flow-guardian-core
-      endpoint: github-service-connection
-      ref: refs/heads/main
+variables:
+  NODE_VERSION: '20.x'
 
-extends:
-  template: azure/templates/exchange-publish.yml@guardian
-  parameters:
-    configPath: release/guardian.config.yml
-    guardianRef: main
-    publishExchange: ${{ parameters.publishExchange }}
+stages:
+  - stage: Preflight
+    displayName: Premium Exchange Preflight
+    jobs:
+      - job: preflight
+        displayName: Validate contract before Exchange publish
+        steps:
+          - checkout: self
+            fetchDepth: 0
+            clean: true
+            persistCredentials: false
+
+          - task: NodeTool@0
+            displayName: Setup Node.js $(NODE_VERSION)
+            inputs:
+              versionSpec: '$(NODE_VERSION)'
+
+          - script: |
+              set -euo pipefail
+              mkdir -p dist/reports dist/openapi
+              echo "Build reason: $(Build.Reason)" | tee dist/reports/pipeline-context.txt
+              echo "Source branch: $(Build.SourceBranch)" | tee -a dist/reports/pipeline-context.txt
+              echo "Source version: $(Build.SourceVersion)" | tee -a dist/reports/pipeline-context.txt
+              node --version | tee -a dist/reports/pipeline-context.txt
+            displayName: Execution context
+
+          - script: |
+              set -euo pipefail
+              bash tools/guards/structure-guard.sh
+              bash tools/guards/conflict-marker-guard.sh
+              bash tools/guards/secret-guard.sh
+              bash tools/guards/protected-files-guard.sh
+              bash tools/git/git-diff-report.sh
+              npm ci --ignore-scripts
+              npm run premium:validate
+              npm run exchange:preflight
+            displayName: Contract and Exchange preflight
+
+          - publish: dist
+            artifact: guardian-exchange-preflight
+            displayName: Publish preflight evidence
+            condition: always()
+
+  - stage: PublishExchange
+    displayName: Publish Exchange
+    dependsOn: Preflight
+    condition: and(succeeded(), eq('${{ parameters.publishExchange }}', true), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['Build.SourceBranch'], 'refs/heads/master')))
+    jobs:
+      - deployment: publish_exchange
+        displayName: Publish to Exchange with exclusive lock
+        environment: exchange-publish-mule-tlf-com-test
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 0
+                  clean: true
+                  persistCredentials: false
+
+                - task: NodeTool@0
+                  inputs:
+                    versionSpec: '$(NODE_VERSION)'
+                  displayName: Setup Node.js $(NODE_VERSION)
+
+                - script: |
+                    set -euo pipefail
+                    npm ci --ignore-scripts
+                    npm run exchange:preflight
+                    npm run exchange:package
+                    npm run exchange:verify
+                    echo "[INFO] Exchange publish command remains controlled by the Guardian/Anypoint CLI implementation."
+                    echo "[INFO] Keep this stage behind Azure DevOps environment approval and exclusive lock."
+                  displayName: Publish Exchange package
+
+                - publish: dist
+                  artifact: guardian-exchange-publish-evidence
+                  displayName: Publish Exchange evidence
+                  condition: always()

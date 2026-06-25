@@ -139,3 +139,55 @@ security:
     - ANYPOINT_ORG
     - ANYPOINT_HOST
     - EXCHANGE_GROUP_ID
+
+
+openapi:
+  enabled: true
+  version: 3.0.3
+  outputYaml: dist/openapi/openapi.yaml
+  outputJson: dist/openapi/openapi.json
+  lintReport: dist/reports/openapi-lint-report.md
+  conversionReport: dist/reports/raml-to-openapi-report.md
+  compareReport: dist/reports/raml-to-openapi-diff.md
+  failWhenPathLost: true
+  failWhenMethodLost: true
+  failWhenSuccessResponseLost: true
+  failWhenRequiredParamLost: true
+
+pipelineGuards:
+  enabled: true
+  checkoutFullHistory: true
+  nodeVersion: "20.x"
+  vmImage: ubuntu-22.04
+  conflictMarkers: block
+  secretsHardcoded: block
+  protectedFilesDeletion: block
+  finalSummaryMustRespectContractBlock: true
+  publishExchangeOnlyOnStableBranch: true
+  publishExchangeNeverOnPr: true
+  evidenceArtifactRequired: true
+
+protectedFiles:
+  files:
+    - api.raml
+    - release/guardian.config.yml
+    - release/release-manifest.yml
+    - release/breaking-changes.yml
+    - release/api-contract-baseline.json
+  folders:
+    - types/
+    - traits/
+    - resourceTypes/
+    - examples/
+    - libraries/
+    - securitySchemes/
+
+breakingChangeGovernance:
+  approvalRequired: true
+  genericApprovalAllowed: false
+  allowAllBreakingChangesAllowed: false
+  ticketPattern: "^(CHG|INC|RLM|JIRA|ADO|US|TASK)[A-Za-z0-9_-]{3,}$"
+  approverMustBeEmail: true
+  reasonMinLength: 20
+  approvedAtRequired: true
+  approvalExpiresInDays: 30

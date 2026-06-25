@@ -5,20 +5,72 @@ trigger:
       - master
       - release/current
       - release/next
+      - feature/*
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+      - release/current
+      - release/next
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: ubuntu-22.04
 
-resources:
-  repositories:
-    - repository: guardian
-      type: github
-      name: LeonelIntegrationXpert/release-flow-guardian-core
-      endpoint: github-service-connection
-      ref: refs/heads/main
+variables:
+  NODE_VERSION: '20.x'
+  DIST_DIR: 'dist'
 
-extends:
-  template: azure/templates/raml-ci.yml@guardian
-  parameters:
-    configPath: release/guardian.config.yml
-    guardianRef: main
+stages:
+  - stage: ValidateContract
+    displayName: Premium RAML/OpenAPI Contract Validation
+    jobs:
+      - job: contract_validation
+        displayName: Contract Guard + RAML to OpenAPI + Evidence
+        steps:
+          - checkout: self
+            fetchDepth: 0
+            clean: true
+            persistCredentials: false
+
+          - task: NodeTool@0
+            displayName: Setup Node.js $(NODE_VERSION)
+            inputs:
+              versionSpec: '$(NODE_VERSION)'
+
+          - script: |
+              set -euo pipefail
+              mkdir -p dist/reports dist/openapi
+              echo "Build reason: $(Build.Reason)" | tee dist/reports/pipeline-context.txt
+              echo "Source branch: $(Build.SourceBranch)" | tee -a dist/reports/pipeline-context.txt
+              echo "Source version: $(Build.SourceVersion)" | tee -a dist/reports/pipeline-context.txt
+              echo "Repository: $(Build.Repository.Name)" | tee -a dist/reports/pipeline-context.txt
+              echo "Node: $(node --version)" | tee -a dist/reports/pipeline-context.txt
+              echo "npm: $(npm --version)" | tee -a dist/reports/pipeline-context.txt
+              git --version | tee -a dist/reports/pipeline-context.txt
+            displayName: Execution context
+
+          - script: |
+              set -euo pipefail
+              bash tools/guards/structure-guard.sh
+              bash tools/guards/conflict-marker-guard.sh
+              bash tools/guards/secret-guard.sh
+              bash tools/guards/protected-files-guard.sh
+            displayName: Premium guards
+
+          - script: |
+              set -euo pipefail
+              bash tools/git/git-diff-report.sh
+            displayName: Git diff evidence
+
+          - script: |
+              set -euo pipefail
+              npm ci --ignore-scripts
+              npm run premium:validate
+            displayName: RAML/OpenAPI contract validation
+
+          - publish: dist
+            artifact: guardian-evidence
+            displayName: Publish Guardian evidence artifacts
+            condition: always()

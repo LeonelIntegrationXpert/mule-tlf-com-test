@@ -1,0 +1,38 @@
+premiumPipeline:
+  version: 1.0.0
+  owner: leonel.d.porto@accenture.com
+  objective: RAML to OpenAPI + anti lost contract + safe Exchange publish
+  runtime:
+    node: "20.x"
+    azureVmImage: ubuntu-22.04
+  openapi:
+    version: 3.0.3
+    outputs:
+      yaml: dist/openapi/openapi.yaml
+      json: dist/openapi/openapi.json
+  guards:
+    conflictMarkers: block
+    secrets: block
+    protectedFilesDeletion: block
+    endpointReplacementSimilarityThreshold: 85
+  protectedFiles:
+    - api.raml
+    - release/guardian.config.yml
+    - release/release-manifest.yml
+    - release/breaking-changes.yml
+    - release/api-contract-baseline.json
+  protectedFolders:
+    - types/
+    - traits/
+    - resourceTypes/
+    - examples/
+    - libraries/
+    - securitySchemes/
+  publishRules:
+    neverPublishOnPr: true
+    allowedBranches:
+      - main
+      - master
+    requireApprovalEnvironment: true
+    requireContractPass: true
+    requireStableVersion: true

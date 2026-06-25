@@ -2,11 +2,25 @@
   "name": "mule-tlf-com-test",
   "version": "1.0.0",
   "private": true,
-  "description": "RAML consumer project using remote Release Flow Guardian Core.",
+  "description": "Premium RAML/OpenAPI API governance project with anti lost-contract guards for Azure DevOps and Exchange.",
   "scripts": {
-    "guardian": "tools\\guardian.cmd"
+    "guardian": "npm run premium:validate",
+    "premium:validate": "node tools/reports/premium-validate.js",
+    "raml:lint": "node tools/contract/raml-lint.js",
+    "raml:extract": "node tools/contract/extract-contract.js",
+    "raml:to-openapi": "node tools/openapi/raml-to-openapi.js",
+    "openapi:validate": "node tools/openapi/validate-openapi.js",
+    "openapi:compare": "node tools/openapi/compare-raml-openapi.js",
+    "contract:diff": "node tools/contract/diff-contract.js",
+    "breaking:validate": "node tools/contract/validate-breaking-changes.js",
+    "baseline:validate": "node tools/contract/validate-baseline-policy.js",
+    "final:summary": "node tools/reports/final-summary.js",
+    "exchange:preflight": "node tools/exchange/preflight-exchange.js",
+    "exchange:package": "node tools/exchange/package-exchange.js",
+    "exchange:verify": "node tools/exchange/verify-exchange.js"
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "devDependencies": {}
 }

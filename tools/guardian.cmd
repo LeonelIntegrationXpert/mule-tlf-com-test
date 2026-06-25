@@ -13,7 +13,7 @@ set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%\..") do set "PROJECT_DIR=%%~fI"
 
 if not defined RFG_CORE_REPO set "RFG_CORE_REPO=https://github.com/LeonelIntegrationXpert/release-flow-guardian-core.git"
-if not defined RFG_CORE_REF set "RFG_CORE_REF=main"
+if not defined RFG_CORE_REF set "RFG_CORE_REF=v1.0.0"
 if not defined RFG_CACHE_ROOT set "RFG_CACHE_ROOT=%LOCALAPPDATA%\ReleaseFlowGuardian\core"
 set "CORE_CACHE_DIR=%RFG_CACHE_ROOT%\%RFG_CORE_REF%"
 set "GUARDIAN_JS=%CORE_CACHE_DIR%\bin\guardian.js"
