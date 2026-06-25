@@ -28,14 +28,23 @@ Use a opção `Limpar cache do core` se quiser forçar baixar tudo de novo.
 
 ## Usar tag em vez de main
 
-Antes de rodar o CMD, você pode definir:
+Por padrão, o launcher usa `main`, porque a tag precisa existir no repositório do core antes de ser usada.
+
+Se uma tag/branch já existir no `release-flow-guardian-core`, você pode definir antes de rodar:
+
+```bat
+set RFG_CORE_REF=<tag-ou-branch-existente>
+tools\guardian.cmd
+```
+
+Exemplo somente quando a tag existir no core:
 
 ```bat
 set RFG_CORE_REF=v1.0.0
 tools\guardian.cmd
 ```
 
-Durante desenvolvimento, `main` é mais rápido. Em produção, use tags.
+Durante desenvolvimento, `main` é mais rápido. Em produção, use uma tag real já publicada.
 
 ## Regra de contrato
 

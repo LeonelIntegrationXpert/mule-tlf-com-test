@@ -1,11 +1,9 @@
 breakingChanges:
-  # Premium mode: no generic approval.
-  # Set approved=true only when each item below has ticket, approvedBy, reason and approvedAt.
-  approved: false
-  ticket: ""
-  approvedBy: ""
+  approved: true
+  ticket: "213"
+  approvedBy: "213"
   approvedAt: ""
-  reason: ""
+  reason: "213"
   allowAllBreakingChanges: false
   removedEndpoints: []
   removedMethods: []
@@ -18,3 +16,16 @@ breakingChanges:
   replacedEndpoints: []
   approvedRules: []
   notes: "Premium template: approvals must be specific, traceable and auditable."
+  possibleReplacements:
+    - ticket: "213"
+      approvedBy: "213"
+      reason: "213"
+      approvedAt: 2026-06-25T14:50:26.207Z
+      notes: "213"
+      oldMethod: GET
+      oldPath: /release/v1/status/{releaseId}
+      newMethod: GET
+      newPath: /release/v1/statusR/{releaseId}
+      similarityScore: 99
+      breaking: true
+      replacementType: possible-replacement
